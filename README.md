@@ -12,3 +12,4 @@ __Uses__:
 * View models
 * Kotlin Flows
 * Room
+* Hilt dependency injection
