@@ -16,7 +16,6 @@ import se.kalind.searchanywhere.domain.AppsRepository
 import se.kalind.searchanywhere.domain.UnixTimeMs
 import se.kalind.searchanywhere.domain.WorkResult
 import se.kalind.searchanywhere.domain.usecases.AppItem
-import se.kalind.searchanywhere.util.filterMap
 
 @OptIn(DelicateCoroutinesApi::class)
 class DefaultAppsRepository(
