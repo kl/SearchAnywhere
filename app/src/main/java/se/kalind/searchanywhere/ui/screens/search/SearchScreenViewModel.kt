@@ -91,7 +91,7 @@ class SearchScreenViewModel @Inject constructor(
                 history = histItems
             )
         }
-            .flowOn(Dispatchers.Default)
+            .flowOn(Dispatchers.IO)
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,

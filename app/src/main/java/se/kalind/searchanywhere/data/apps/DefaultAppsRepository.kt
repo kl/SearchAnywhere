@@ -37,7 +37,7 @@ class DefaultAppsRepository(
 
     override fun history(): Flow<List<Pair<AppItemData, UnixTimeMs>>> {
         return appHistoryDao.getLatestHistory().map { history ->
-            history.filterMap { entity ->
+            history.mapNotNull { entity ->
                 val resolveInfo = resolveActivity(context, entity.packageName, entity.activityName)
                 if (resolveInfo == null) {
                     // If the application was uninstalled it is no longer resolvable so we filter it
@@ -45,7 +45,7 @@ class DefaultAppsRepository(
                     GlobalScope.launch(Dispatchers.Default) {
                         appHistoryDao.deleteFromHistory(entity)
                     }
-                    return@filterMap null
+                    return@mapNotNull null
                 }
                 val item = AppItemData(
                     id = entity.id,
