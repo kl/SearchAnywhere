@@ -26,11 +26,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -72,6 +72,8 @@ fun SearchScreen(
         }
     }
 
+    val searchText = rememberSaveable { mutableStateOf("") }
+
     Scaffold(
         snackbarHost = {
             SnackbarHost(
@@ -84,8 +86,12 @@ fun SearchScreen(
         SearchScreenContent(
             items = state.items,
             history = state.history,
+            searchText = searchText.value,
             onItemClick = { item -> viewModel.openItem(context, item) },
-            onSearchChanged = { filter -> viewModel.onSearchChanged(filter) },
+            onSearchChanged = { filter ->
+                searchText.value = filter
+                viewModel.onSearchChanged(searchText.value)
+            },
         )
     }
 }
@@ -94,18 +100,18 @@ fun SearchScreen(
 internal fun SearchScreenContent(
     items: List<SearchItem>,
     history: Loading<List<SearchItem>>,
+    searchText: String,
     onItemClick: (ItemType) -> Unit,
     onSearchChanged: (String) -> Unit,
 ) {
-    val searchText = remember { mutableStateOf("") }
 
     Column() {
         SearchTextField(
             text = searchText,
-            onSearchChanged = onSearchChanged
+            onSearchChanged = onSearchChanged,
         )
 
-        if (searchText.value.isEmpty() && items.isEmpty()) {
+        if (searchText.isEmpty() && items.isEmpty()) {
             val histItems = history.data
             if (!histItems.isNullOrEmpty()) {
                 ItemList(
@@ -116,8 +122,7 @@ internal fun SearchScreenContent(
             } else {
                 if (history.hasLoaded()) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -139,13 +144,13 @@ internal fun SearchScreenContent(
 
 @Composable
 private fun SearchTextField(
-    text: MutableState<String>,
+    text: String,
     onSearchChanged: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
 
     OutlinedTextField(
-        value = text.value,
+        value = text,
         singleLine = true,
         textStyle = TextStyle(
             color = Purple40,
@@ -153,12 +158,11 @@ private fun SearchTextField(
             fontSize = 22.sp,
         ),
         onValueChange = { new ->
-            text.value = new
             onSearchChanged(new)
         },
         label = { Text("Search Anywhere") },
         trailingIcon = {
-            if (text.value.isEmpty()) {
+            if (text.isEmpty()) {
                 Icon(
                     Icons.Default.Search,
                     contentDescription = "search icon",
@@ -167,11 +171,9 @@ private fun SearchTextField(
                 Icon(
                     Icons.Default.Clear,
                     contentDescription = "clear text",
-                    modifier = Modifier
-                        .clickable {
-                            text.value = ""
-                            onSearchChanged("")
-                        }
+                    modifier = Modifier.clickable {
+                        onSearchChanged("")
+                    }
                 )
             }
         },
