@@ -26,7 +26,7 @@ pub fn search(reader: &mut BufReader<impl Read>, search: &str) -> Result<Vec<Str
         // We read up to and including a \n. This \n could be the end-of-line \n
         // or it may be a 0xA byte in the common length number. If the latter is true we need to
         // keep reading until we get to the end-of-line \n.
-        while !newline_is_at_line_end(&buf) {
+        while !last_char_is_line_sep_newline(&buf) {
             util::read_line_include_newline(reader, &mut buf)?;
         }
         // remove the end-of-line \n
@@ -79,7 +79,14 @@ fn decompress_line(prev: &[u8], curr: &[u8]) -> Result<String, FromUtf8Error> {
     String::from_utf8(result)
 }
 
-fn newline_is_at_line_end(buf: &[u8]) -> bool {
+fn last_char_is_line_sep_newline(buf: &[u8]) -> bool {
+    assert!(!buf.is_empty(), "buf cannot be empty");
+    assert_eq!(buf[buf.len() - 1], b'\n', "last char in buf was not a newline");
+
+    if buf.len() == 1 {
+        return false;
+    }
+
     match buf[0] {
         253 => buf.len() > 3,
         254 => buf.len() > 4,
@@ -126,7 +133,7 @@ mod tests {
             // common length contains 0xA (newline value)
             &[253, 10, 1], "xax".as_bytes(), &[b'\n'],
             // 10 common chars -> 251
-            &[251], "?".as_bytes(), &[b'\n'],
+            &[b'\n'], "?".as_bytes(), &[b'\n'],
         ]
             .iter()
             .fold(Vec::new(), |mut fold, bytes| {
@@ -168,5 +175,9 @@ mod tests {
         // test reading when common length contains 0xA
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
         assert_eq!(search(&mut reader, "xax").unwrap().len(), 1);
+
+        // test reading when first bye is 0xA
+        let mut reader = BufReader::new(File::open(&file_path).unwrap());
+        assert_eq!(search(&mut reader, "?").unwrap().len(), 1);
     }
 }

@@ -73,17 +73,11 @@ fn push_line(result: &mut Vec<u8>, count: u32, line: &[u8]) {
 
 fn encode_count(result: &mut Vec<u8>, count: u32) {
     // the biggest count we can fit in one byte
-    static MAX_COUNT_1_BYTE: u8 = u8::MAX - 5;
+    static MAX_COUNT_1_BYTE: u8 = u8::MAX - 4;
 
     if count <= MAX_COUNT_1_BYTE as u32 {
         // count fits in one byte
-        // \n encodes to 251 to avoid conflicts with the newline line separators
-        let count = if (count as u8) == b'\n' {
-            MAX_COUNT_1_BYTE + 1
-        } else {
-            count as u8
-        };
-        result.push(count)
+        result.push(count as u8);
     } else {
         // we need more than the first byte to encode count.
         let bytes: [u8; 4] = count.to_le_bytes();
@@ -98,7 +92,7 @@ fn encode_count(result: &mut Vec<u8>, count: u32) {
 
         // the number of bytes needed for the count are encoded as follows:
         // 252 => 1 byte, 253 => 2 bytes, 254 => 3 bytes, 255 => 4 bytes.
-        result.push(MAX_COUNT_1_BYTE + 1 + bytes_needed as u8);
+        result.push(MAX_COUNT_1_BYTE + bytes_needed as u8);
         for byte in bytes.iter().take(bytes_needed) {
             result.push(*byte);
         }
@@ -148,8 +142,8 @@ mod tests {
             &[1], "x/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/file1.sh".as_bytes(), &[b'\n'],
             // 272 common chars -> 253=needs 2 byte to store, 16=LSB, 1=MSB
             &[253, 16, 1], "2.jpg".as_bytes(), &[b'\n'],
-            // 10 common chars -> 251
-            &[251], "?".as_bytes(),
+            // 10 common chars -> encode newline
+            &[b'\n'], "?".as_bytes(),
         ]
             .iter()
             .fold(Vec::new(), |mut fold, bytes| {
@@ -160,7 +154,7 @@ mod tests {
             });
 
         let result = compress_lines(input.as_slice());
-        assert_eq!(expected, result);
+        assert_eq!(result, expected);
     }
 
     #[test]
@@ -200,7 +194,7 @@ mod tests {
                 fold
             });
 
-        assert_eq!(expected, result);
+        assert_eq!(result, expected);
     }
 
     #[test]
@@ -212,6 +206,6 @@ mod tests {
         compress_line(&mut ret, prev.as_bytes(), curr.as_bytes());
 
         let expected = &[253, 0, 1, 108, 101, 110, b'\n'];
-        assert_eq!(expected.as_slice(), ret);
+        assert_eq!(ret, expected.as_slice());
     }
 }
