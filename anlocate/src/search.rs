@@ -81,7 +81,11 @@ fn decompress_line(prev: &[u8], curr: &[u8]) -> Result<String, FromUtf8Error> {
 
 fn last_char_is_line_sep_newline(buf: &[u8]) -> bool {
     assert!(!buf.is_empty(), "buf cannot be empty");
-    assert_eq!(buf[buf.len() - 1], b'\n', "last char in buf was not a newline");
+    assert_eq!(
+        buf[buf.len() - 1],
+        b'\n',
+        "last char in buf was not a newline"
+    );
 
     if buf.len() == 1 {
         return false;

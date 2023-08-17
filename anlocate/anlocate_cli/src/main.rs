@@ -19,12 +19,9 @@ enum Commands {
     },
     Build {
         db_path: String,
-        #[arg(short, long, default_value = ".")]
         scan_root: String,
         #[arg(short, long, default_value_t = 1000000)]
         mem_limit: usize,
-        #[arg(short, long)]
-        relative_paths: bool,
         #[arg(short, long)]
         no_compress: bool
     },
@@ -50,7 +47,6 @@ fn main() {
             db_path,
             scan_root,
             mem_limit,
-            relative_paths,
             no_compress,
         } => {
             print!("building...");
@@ -59,7 +55,6 @@ fn main() {
                 scan_root,
                 DatabaseOptions {
                     mem_limit,
-                    write_absolute_paths: !relative_paths,
                     compress: !no_compress,
                 },
             )

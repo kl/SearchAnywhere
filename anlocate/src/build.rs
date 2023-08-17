@@ -1,6 +1,6 @@
 use crate::{compress, util};
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufReader, BufWriter, ErrorKind, Write};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
@@ -14,9 +14,6 @@ pub struct DatabaseOptions {
     /// The file system walker will store file paths in memory up until `mem_limit` bytes of
     /// memory is used. After this limit is exceeded, the path buffer is flushed to a part file.
     pub mem_limit: usize,
-    /// If `write_absolute_paths` is true the database will store absolute paths and not
-    /// paths relative to the current directory when the database was built.
-    pub write_absolute_paths: bool,
     /// Whether to compress the database or not
     pub compress: bool,
 }
@@ -25,7 +22,6 @@ impl Default for DatabaseOptions {
     fn default() -> Self {
         DatabaseOptions {
             mem_limit: 2 * 1000 * 1000, // 2 MB
-            write_absolute_paths: true,
             compress: true,
         }
     }
@@ -82,12 +78,6 @@ fn write_database(
 
     let mut part_file_paths = Vec::new();
     for (i, mut files) in rx.iter().enumerate() {
-        if options.write_absolute_paths {
-            files = files
-                .into_iter()
-                .map(fs::canonicalize)
-                .collect::<io::Result<Vec<PathBuf>>>()?;
-        }
         let path = temp_dir.join(format!("{i}.part"));
         let mut part_file = BufWriter::new(File::create(&path)?);
         part_file_paths.push(path);
@@ -211,7 +201,12 @@ where
     where
         F: Fn(Vec<PathBuf>) -> WalkStatus,
     {
-        let mut entries = fs::read_dir(&dir)?.peekable();
+        let mut entries = match fs::read_dir(&dir) {
+            Ok(entries) => entries.peekable(),
+            // if permission denied, ignore and continue walk
+            Err(err) if err.kind() == ErrorKind::PermissionDenied => return Ok(WalkStatus::Ok),
+            Err(err) => return Err(err),
+        };
         if entries.peek().is_none() {
             // dir is a leaf (empty dir) so add it to the files list
             files.push(dir);
@@ -264,8 +259,7 @@ mod tests {
     fn test_build_database() {
         let tmp_dir = TempDir::new("test_build_database").unwrap();
         let db_path = tmp_dir.path().join("database.anlocate");
-        let mut options = DatabaseOptions::default();
-        options.write_absolute_paths = false;
+        let options = DatabaseOptions::default();
         build_database(&db_path, "tests/root", options).unwrap();
         assert!(db_path.is_file());
         let content = fs::read(db_path).unwrap();
