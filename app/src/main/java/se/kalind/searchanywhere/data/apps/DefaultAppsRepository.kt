@@ -76,6 +76,7 @@ class DefaultAppsRepository(
         intent.action = Intent.ACTION_MAIN
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
 
+        val seenIds = mutableMapOf<String, Boolean>();
         return context.packageManager.queryIntentActivities(intent, 0)
             .map { info ->
                 val label = info.loadLabel(context.packageManager).toString()
@@ -87,6 +88,15 @@ class DefaultAppsRepository(
                     activityName = info.activityInfo.name,
                     icon = info.activityInfo.loadIcon(context.packageManager),
                 )
+            }
+            .filter { info ->
+                // some devices will return duplicate entries so filter out if id already exists.
+                if (seenIds.containsKey(info.id)) {
+                    false
+                } else {
+                    seenIds[info.id] = true
+                    true
+                }
             }
     }
 
