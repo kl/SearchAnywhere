@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.sp
 import se.kalind.searchanywhere.R
 
 // Set of Material typography styles to start with
-val Typography = Typography(
+val typography = Typography(
     bodyLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,

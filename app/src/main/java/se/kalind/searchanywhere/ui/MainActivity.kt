@@ -7,8 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import dagger.hilt.android.AndroidEntryPoint
-import se.kalind.searchanywhere.ui.theme.MyApplicationTheme
+import se.kalind.searchanywhere.ui.theme.AppTheme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -16,10 +17,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MyApplicationTheme {
+            AppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.background,
+                    tonalElevation = 5.dp,
                 ) {
                     MainNavigation()
                 }
