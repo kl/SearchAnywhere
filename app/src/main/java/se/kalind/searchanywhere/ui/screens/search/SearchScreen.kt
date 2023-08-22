@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -33,7 +34,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +46,6 @@ import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.launch
 import se.kalind.searchanywhere.domain.ItemType
 import se.kalind.searchanywhere.ui.Loading
-import se.kalind.searchanywhere.ui.theme.Purple40
 import se.kalind.searchanywhere.ui.theme.alegreyaFamily
 
 @Composable
@@ -131,7 +130,6 @@ internal fun SearchScreenContent(
                             fontSize = 24.sp,
                             fontFamily = alegreyaFamily,
                             lineHeight = 30.sp,
-                            color = Color.DarkGray
                         )
                     }
                 }
@@ -153,7 +151,6 @@ private fun SearchTextField(
         value = text,
         singleLine = true,
         textStyle = TextStyle(
-            color = Purple40,
             fontWeight = FontWeight.Bold,
             fontSize = 22.sp,
         ),
@@ -199,7 +196,6 @@ private fun ItemList(
                     textAlign = TextAlign.Center,
                     fontSize = 20.sp,
                     fontFamily = alegreyaFamily,
-                    color = Color.DarkGray,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp, bottom = 5.dp),
@@ -228,12 +224,12 @@ private fun ItemRow(
 ) {
     Card(
         modifier = modifier
-            .padding(vertical = 4.dp, horizontal = 8.dp)
+            .padding(vertical = 4.dp, horizontal = 4.dp)
             .clickable { onClick(item.item) }
     ) {
         Row(
             modifier = Modifier
-                .background(item.backgroundColor)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(14.dp)
                 .fillMaxWidth()
         ) {

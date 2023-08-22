@@ -6,7 +6,6 @@ import android.content.Intent
 import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -29,8 +28,6 @@ import se.kalind.searchanywhere.domain.usecases.HistoryUseCases
 import se.kalind.searchanywhere.domain.usecases.SettingItem
 import se.kalind.searchanywhere.domain.usecases.WeightedItem
 import se.kalind.searchanywhere.ui.Loading
-import se.kalind.searchanywhere.ui.theme.appRowColor
-import se.kalind.searchanywhere.ui.theme.settingRowColor
 import javax.inject.Inject
 
 sealed class IconType {
@@ -42,7 +39,6 @@ data class SearchItem(
     val item: ItemType,
     val icon: IconType,
     val displayName: String,
-    val backgroundColor: Color,
     val key: Any,
 )
 
@@ -74,13 +70,13 @@ class SearchScreenViewModel @Inject constructor(
             history.getHistory
         ) { settings, apps, history ->
 
-            val settings = unwrapResultList(settings).map {
+            val settingItems = unwrapResultList(settings).map {
                 WeightedItem(it.weight, it.item.toSearchItem())
             }
-            val apps = unwrapResultList(apps).map {
+            val appItems = unwrapResultList(apps).map {
                 WeightedItem(it.weight, it.item.toSearchItem())
             }
-            val items = (apps + settings)
+            val items = (appItems + settingItems)
                 .sortedByDescending { it.weight }
                 .map { it.item }
 
@@ -164,7 +160,6 @@ fun SettingItem.toSearchItem(): SearchItem {
         item = ItemType.Setting(this),
         icon = IconType.Vector(Icons.Default.Settings),
         displayName = this.displayName(),
-        backgroundColor = settingRowColor,
         key = this.id,
     )
 }
@@ -174,7 +169,6 @@ fun AppItem.toSearchItem(): SearchItem {
         item = ItemType.App(this),
         icon = IconType.Drawable(this.icon),
         displayName = this.displayName(),
-        backgroundColor = appRowColor,
         key = this.id,
     )
 }
