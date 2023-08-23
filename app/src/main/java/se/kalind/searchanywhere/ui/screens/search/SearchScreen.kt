@@ -27,7 +27,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,7 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -94,6 +93,7 @@ fun SearchScreen(
                 searchText.value = filter
                 viewModel.onSearchChanged(searchText.value)
             },
+            onSearchFieldFocused = { viewModel.onSearchFieldFocused(context) },
         )
     }
 }
@@ -105,12 +105,14 @@ internal fun SearchScreenContent(
     searchText: String,
     onItemClick: (ItemType) -> Unit,
     onSearchChanged: (String) -> Unit,
+    onSearchFieldFocused: () -> Unit,
 ) {
 
-    Column() {
+    Column {
         SearchTextField(
             text = searchText,
             onSearchChanged = onSearchChanged,
+            onReceivedFocus = onSearchFieldFocused,
         )
 
         if (searchText.isEmpty() && items.isEmpty()) {
@@ -147,6 +149,7 @@ internal fun SearchScreenContent(
 private fun SearchTextField(
     text: String,
     onSearchChanged: (String) -> Unit,
+    onReceivedFocus: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
 
@@ -177,7 +180,13 @@ private fun SearchTextField(
                 )
             }
         },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged { focus ->
+                if (focus.isFocused) {
+                    onReceivedFocus()
+                }
+            }
     )
 }
 
@@ -188,7 +197,7 @@ private fun ItemList(
     onItemClick: (ItemType) -> Unit,
     headerText: String? = null,
 ) {
-    LazyColumn() {
+    LazyColumn {
         item {
             Spacer(modifier = Modifier.padding(top = 10.dp))
         }
@@ -229,8 +238,8 @@ private fun ItemRow(
     Card(
         modifier = modifier
             .padding(vertical = 4.dp, horizontal = 4.dp),
-            // .clickable modifier doesn't render the ripple correctly
-            onClick = { onClick(item.item) },
+        // .clickable modifier doesn't render the ripple correctly
+        onClick = { onClick(item.item) },
     ) {
         Row(
             modifier = Modifier

@@ -31,9 +31,8 @@ data class AppItem(
         }
     }
 
-    override fun displayName(): String {
-        return label
-    }
+    override val displayName: String
+        get() = label
 }
 
 typealias AppItems = List<WeightedItem<AppItem>>

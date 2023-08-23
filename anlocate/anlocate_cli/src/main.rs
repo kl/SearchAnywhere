@@ -1,3 +1,4 @@
+use std::env;
 use anlocate::build::DatabaseOptions;
 use anlocate::{build, search};
 use clap::{Parser, Subcommand};
@@ -56,6 +57,7 @@ fn main() {
                 DatabaseOptions {
                     mem_limit,
                     compress: !no_compress,
+                    temp_dir: env::temp_dir(),
                 },
             )
             .expect("failed to build database");

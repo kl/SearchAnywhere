@@ -1,4 +1,4 @@
-package se.kalind.searchanywhere.domain;
+package se.kalind.searchanywhere.domain
 
 import kotlinx.coroutines.flow.Flow
 import se.kalind.searchanywhere.domain.usecases.SettingItem

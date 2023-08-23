@@ -76,7 +76,7 @@ class DefaultAppsRepository(
         intent.action = Intent.ACTION_MAIN
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
 
-        val seenIds = mutableMapOf<String, Boolean>();
+        val seenIds = mutableMapOf<String, Boolean>()
         return context.packageManager.queryIntentActivities(intent, 0)
             .map { info ->
                 val label = info.loadLabel(context.packageManager).toString()

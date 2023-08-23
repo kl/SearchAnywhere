@@ -14,7 +14,7 @@ data class SettingItem(
     val id: String,
     val fieldName: String,
     val fieldValue: String,
-    val displayName: String,
+    override val displayName: String,
 ) : DisplayName {
     companion object {
         fun fromData(settings: SettingItemData): SettingItem {
@@ -29,10 +29,6 @@ data class SettingItem(
                         part.replaceFirstChar { it.uppercase() }
                     })
         }
-    }
-
-    override fun displayName(): String {
-        return displayName
     }
 }
 

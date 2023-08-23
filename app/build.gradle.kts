@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "se.kalind.searchanywhere"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 33
         versionCode = 1
         versionName = "1.0"
@@ -77,6 +77,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.fragment)
+
 
     // Hilt Dependency Injection
     implementation(libs.hilt.android)

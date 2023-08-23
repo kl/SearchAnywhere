@@ -10,9 +10,12 @@ import dagger.hilt.components.SingletonComponent
 import se.kalind.searchanywhere.data.SearchAnywhereDatabase
 import se.kalind.searchanywhere.data.apps.AppHistoryDao
 import se.kalind.searchanywhere.data.apps.DefaultAppsRepository
+import se.kalind.searchanywhere.data.files.AnlocateLibrary
+import se.kalind.searchanywhere.data.files.DefaultFilesRepository
 import se.kalind.searchanywhere.data.settings.DefaultSettingsRepository
 import se.kalind.searchanywhere.data.settings.SettingHistoryDao
 import se.kalind.searchanywhere.domain.AppsRepository
+import se.kalind.searchanywhere.domain.FilesRepository
 import se.kalind.searchanywhere.domain.SettingsRepository
 import javax.inject.Singleton
 
@@ -36,6 +39,15 @@ object RepositoryModule {
     ): AppsRepository {
 
         return DefaultAppsRepository(context, appHistoryDao)
+    }
+
+    @Singleton
+    @Provides
+    fun provideFilesRepository(
+        @ApplicationContext context: Context,
+        anlocateLibrary: AnlocateLibrary,
+    ): FilesRepository {
+        return DefaultFilesRepository(context, anlocateLibrary)
     }
 }
 
@@ -61,5 +73,14 @@ object DatabaseModule {
     @Provides
     fun provideSettingHistoryDao(database: SearchAnywhereDatabase): SettingHistoryDao {
         return database.settingHistoryDao()
+    }
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object NativeCodeModule {
+    @Provides
+    fun provideAnlocateLibrary(): AnlocateLibrary {
+        return AnlocateLibrary()
     }
 }

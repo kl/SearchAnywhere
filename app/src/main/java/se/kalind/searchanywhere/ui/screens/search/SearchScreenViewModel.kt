@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
@@ -22,12 +23,15 @@ import kotlinx.coroutines.flow.stateIn
 import se.kalind.searchanywhere.domain.ItemType
 import se.kalind.searchanywhere.domain.WorkResult
 import se.kalind.searchanywhere.domain.usecases.AppItem
+import se.kalind.searchanywhere.domain.usecases.FileItem
+import se.kalind.searchanywhere.domain.usecases.FilesUseCases
 import se.kalind.searchanywhere.domain.usecases.GetAppsUseCase
 import se.kalind.searchanywhere.domain.usecases.GetSettingsUseCase
 import se.kalind.searchanywhere.domain.usecases.HistoryUseCases
 import se.kalind.searchanywhere.domain.usecases.SettingItem
 import se.kalind.searchanywhere.domain.usecases.WeightedItem
 import se.kalind.searchanywhere.ui.Loading
+import se.kalind.searchanywhere.ui.findMainActivity
 import javax.inject.Inject
 
 sealed class IconType {
@@ -53,8 +57,17 @@ data class Message(val message: String, val key: Any)
 class SearchScreenViewModel @Inject constructor(
     private val getSettings: GetSettingsUseCase,
     private val getApps: GetAppsUseCase,
+    private val files: FilesUseCases,
     private val history: HistoryUseCases,
 ) : ViewModel() {
+
+    private var permissionsGranted = false
+
+//    init {
+//        files.rebuildDatabase(ScanRoot.INTERNAL)
+//    }
+
+//    private val files: MutableStateFlow<ArrayList<String>> = MutableStateFlow(ArrayList())
 
     private val _messages = MutableSharedFlow<Message>(
         extraBufferCapacity = 1,
@@ -67,8 +80,9 @@ class SearchScreenViewModel @Inject constructor(
         combine(
             getSettings.filteredSettings,
             getApps.filteredApps,
-            history.getHistory
-        ) { settings, apps, history ->
+            files.filteredFiles,
+            history.getHistory,
+        ) { settings, apps, files, history ->
 
             val settingItems = unwrapResultList(settings).map {
                 WeightedItem(it.weight, it.item.toSearchItem())
@@ -76,7 +90,11 @@ class SearchScreenViewModel @Inject constructor(
             val appItems = unwrapResultList(apps).map {
                 WeightedItem(it.weight, it.item.toSearchItem())
             }
-            val items = (appItems + settingItems)
+            val fileItems = unwrapResultList(files).map {
+                WeightedItem(it.weight, it.item.toSearchItem())
+            }
+
+            val items = (appItems + settingItems + fileItems)
                 .sortedByDescending { it.weight }
                 .map { it.item }
 
@@ -116,6 +134,20 @@ class SearchScreenViewModel @Inject constructor(
     fun onSearchChanged(filter: String) {
         getSettings.setFilter(filter)
         getApps.setFilter(filter)
+        files.setFilter(filter)
+    }
+
+    fun onSearchFieldFocused(context: Context) {
+        // context passed from Compose so we should always be able to get the MainActivity
+        val activity = context.findMainActivity()!!
+        Log.d("LOGZ", "FOCUSED: true")
+
+        activity.requestFilePermissions { granted ->
+            Log.d("LOGZ", "permissions granted: $granted (viewmodel)")
+            if (granted) {
+                files.createDatabaseIfNeeded()
+            }
+        }
     }
 
     fun openItem(context: Context, item: ItemType) {
@@ -151,6 +183,10 @@ class SearchScreenViewModel @Inject constructor(
                     Log.d("LOGZ", "$ret")
                 }
             }
+
+            is ItemType.File -> {
+                Log.d("LOGZ", "open file: ${item.item.displayName}")
+            }
         }
     }
 }
@@ -159,7 +195,7 @@ fun SettingItem.toSearchItem(): SearchItem {
     return SearchItem(
         item = ItemType.Setting(this),
         icon = IconType.Vector(Icons.Default.Settings),
-        displayName = this.displayName(),
+        displayName = this.displayName,
         key = this.id,
     )
 }
@@ -168,8 +204,17 @@ fun AppItem.toSearchItem(): SearchItem {
     return SearchItem(
         item = ItemType.App(this),
         icon = IconType.Drawable(this.icon),
-        displayName = this.displayName(),
+        displayName = this.displayName,
         key = this.id,
+    )
+}
+
+fun FileItem.toSearchItem(): SearchItem {
+    return SearchItem(
+        item = ItemType.File(this),
+        icon = IconType.Vector(Icons.Default.MailOutline),
+        displayName = this.displayName,
+        key = this.displayName,
     )
 }
 
@@ -177,5 +222,6 @@ fun ItemType.toSearchItem(): SearchItem {
     return when (this) {
         is ItemType.App -> item.toSearchItem()
         is ItemType.Setting -> item.toSearchItem()
+        is ItemType.File -> item.toSearchItem()
     }
 }

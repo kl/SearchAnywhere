@@ -10,10 +10,10 @@ fun <T : DisplayName> filterItems(items: List<T>, filter: String): List<Weighted
     } else {
         val filterLower = filter.lowercase()
         items.filter { item ->
-            item.displayName().contains(filterLower, ignoreCase = true)
+            item.displayName.contains(filterLower, ignoreCase = true)
         }.map { item ->
             var weight = 0
-            val name = item.displayName().lowercase()
+            val name = item.displayName.lowercase()
             // Name starts with search
             if (name.startsWith(filterLower)) {
                 weight += 1
@@ -30,5 +30,5 @@ fun <T : DisplayName> filterItems(items: List<T>, filter: String): List<Weighted
 data class WeightedItem<T>(val weight: Int, val item: T)
 
 interface DisplayName {
-    fun displayName(): String
+    val displayName: String
 }

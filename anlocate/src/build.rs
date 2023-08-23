@@ -5,7 +5,7 @@ use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
-use std::{fs, io};
+use std::{env, fs, io};
 use std::{mem, thread};
 
 #[derive(Debug, Clone)]
@@ -14,8 +14,10 @@ pub struct DatabaseOptions {
     /// The file system walker will store file paths in memory up until `mem_limit` bytes of
     /// memory is used. After this limit is exceeded, the path buffer is flushed to a part file.
     pub mem_limit: usize,
-    /// Whether to compress the database or not
+    /// Whether to compress the database or not.
     pub compress: bool,
+    /// The path to the dir where temporary .part files are written.
+    pub temp_dir: PathBuf,
 }
 
 impl Default for DatabaseOptions {
@@ -23,6 +25,7 @@ impl Default for DatabaseOptions {
         DatabaseOptions {
             mem_limit: 2 * 1000 * 1000, // 2 MB
             compress: true,
+            temp_dir: env::temp_dir(),
         }
     }
 }
@@ -69,7 +72,7 @@ fn write_database(
     db_path: PathBuf,
     options: DatabaseOptions,
 ) -> io::Result<()> {
-    let temp_dir = std::env::temp_dir().join("anlocate");
+    let temp_dir = options.temp_dir.join("anlocate");
     if temp_dir.is_dir() {
         fs::remove_dir_all(&temp_dir)?;
     }
