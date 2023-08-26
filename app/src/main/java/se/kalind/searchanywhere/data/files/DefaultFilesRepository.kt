@@ -1,24 +1,30 @@
 package se.kalind.searchanywhere.data.files
 
-import android.content.Context
 import android.os.Environment
 import android.util.Log
-import se.kalind.searchanywhere.domain.FilesRepository
-import se.kalind.searchanywhere.domain.ScanRoot
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import se.kalind.searchanywhere.domain.UnixTimeMs
 import se.kalind.searchanywhere.domain.WorkResult
-import se.kalind.searchanywhere.domain.usecases.FileItem
+import se.kalind.searchanywhere.domain.repo.FileItem
+import se.kalind.searchanywhere.domain.repo.FilesRepository
+import se.kalind.searchanywhere.domain.repo.ScanRoot
 import java.io.File
 
-
 class DefaultFilesRepository(
-    private val context: Context,
     private val lib: AnlocateLibrary,
+    private val fileHistoryDao: FileHistoryDao,
 ) : FilesRepository {
 
-    val databaseFilePath =
+    private val databaseFilePath =
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath + "/anlocate.txt"
-    val externalMainScanRoot = Environment.getExternalStorageDirectory().absolutePath
-    val tempDir =
+    private val externalMainScanRoot: String =
+        Environment.getExternalStorageDirectory().absolutePath
+    private val tempDir =
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath + "/anlocate_temp"
 
     override fun buildDatabase(scanRoot: ScanRoot) {
@@ -47,6 +53,23 @@ class DefaultFilesRepository(
         }
     }
 
+    override fun history(): Flow<List<Pair<FileItem, UnixTimeMs>>> {
+        return fileHistoryDao.getLatestHistory().map { history ->
+            history.map { hist ->
+                val item = FileItem(hist.fullPath)
+                Pair(item, hist.updateTime)
+            }
+        }
+    }
+
     override fun saveToHistory(item: FileItem) {
+        val entity = FileHistoryEntity(
+            fullPath = item.displayName,
+            updateTime = System.currentTimeMillis(),
+        )
+        @OptIn(DelicateCoroutinesApi::class)
+        GlobalScope.launch(Dispatchers.IO) {
+            fileHistoryDao.saveToHistory(entity)
+        }
     }
 }

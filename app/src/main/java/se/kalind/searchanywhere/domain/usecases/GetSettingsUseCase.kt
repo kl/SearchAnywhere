@@ -4,34 +4,10 @@ import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import se.kalind.searchanywhere.domain.SettingItemData
-import se.kalind.searchanywhere.domain.SettingsRepository
 import se.kalind.searchanywhere.domain.WorkResult
+import se.kalind.searchanywhere.domain.repo.SettingItem
+import se.kalind.searchanywhere.domain.repo.SettingsRepository
 import javax.inject.Inject
-
-// The domain layer setting item representation.
-data class SettingItem(
-    val id: String,
-    val fieldName: String,
-    val fieldValue: String,
-    override val displayName: String,
-) : DisplayName {
-    companion object {
-        fun fromData(settings: SettingItemData): SettingItem {
-            return SettingItem(
-                id = settings.id,
-                fieldName = settings.fieldName,
-                fieldValue = settings.fieldValue,
-                displayName = settings.fieldName.lowercase()
-                    .split("_")
-                    .drop(1)
-                    .joinToString(" ") { part ->
-                        part.replaceFirstChar { it.uppercase() }
-                    })
-        }
-    }
-}
-
 
 typealias SettingItems = List<WeightedItem<SettingItem>>
 
@@ -53,4 +29,3 @@ class GetSettingsUseCase @Inject constructor(settingsRepository: SettingsReposit
         _filter.value = filter
     }
 }
-

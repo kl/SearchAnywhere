@@ -12,11 +12,12 @@ import se.kalind.searchanywhere.data.apps.AppHistoryDao
 import se.kalind.searchanywhere.data.apps.DefaultAppsRepository
 import se.kalind.searchanywhere.data.files.AnlocateLibrary
 import se.kalind.searchanywhere.data.files.DefaultFilesRepository
+import se.kalind.searchanywhere.data.files.FileHistoryDao
 import se.kalind.searchanywhere.data.settings.DefaultSettingsRepository
 import se.kalind.searchanywhere.data.settings.SettingHistoryDao
-import se.kalind.searchanywhere.domain.AppsRepository
-import se.kalind.searchanywhere.domain.FilesRepository
-import se.kalind.searchanywhere.domain.SettingsRepository
+import se.kalind.searchanywhere.domain.repo.AppsRepository
+import se.kalind.searchanywhere.domain.repo.FilesRepository
+import se.kalind.searchanywhere.domain.repo.SettingsRepository
 import javax.inject.Singleton
 
 @Module
@@ -35,7 +36,7 @@ object RepositoryModule {
     @Provides
     fun provideAppsRepository(
         @ApplicationContext context: Context,
-        appHistoryDao: AppHistoryDao
+        appHistoryDao: AppHistoryDao,
     ): AppsRepository {
 
         return DefaultAppsRepository(context, appHistoryDao)
@@ -44,10 +45,10 @@ object RepositoryModule {
     @Singleton
     @Provides
     fun provideFilesRepository(
-        @ApplicationContext context: Context,
         anlocateLibrary: AnlocateLibrary,
+        fileHistoryDao: FileHistoryDao,
     ): FilesRepository {
-        return DefaultFilesRepository(context, anlocateLibrary)
+        return DefaultFilesRepository(anlocateLibrary, fileHistoryDao)
     }
 }
 
@@ -73,6 +74,11 @@ object DatabaseModule {
     @Provides
     fun provideSettingHistoryDao(database: SearchAnywhereDatabase): SettingHistoryDao {
         return database.settingHistoryDao()
+    }
+
+    @Provides
+    fun provideFileHistoryDao(database: SearchAnywhereDatabase): FileHistoryDao {
+        return database.fileHistoryDao()
     }
 }
 

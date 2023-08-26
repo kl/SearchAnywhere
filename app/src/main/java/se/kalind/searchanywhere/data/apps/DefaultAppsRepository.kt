@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import se.kalind.searchanywhere.domain.AppItemData
-import se.kalind.searchanywhere.domain.AppsRepository
 import se.kalind.searchanywhere.domain.UnixTimeMs
 import se.kalind.searchanywhere.domain.WorkResult
-import se.kalind.searchanywhere.domain.usecases.AppItem
+import se.kalind.searchanywhere.domain.repo.AppItem
+import se.kalind.searchanywhere.domain.repo.AppItemData
+import se.kalind.searchanywhere.domain.repo.AppsRepository
 
 @OptIn(DelicateCoroutinesApi::class)
 class DefaultAppsRepository(
@@ -66,7 +66,7 @@ class DefaultAppsRepository(
             activityName = item.activityName,
             updateTime = System.currentTimeMillis(),
         )
-        GlobalScope.launch(Dispatchers.Default) {
+        GlobalScope.launch(Dispatchers.IO) {
             appHistoryDao.saveToHistory(entity)
         }
     }

@@ -8,11 +8,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import se.kalind.searchanywhere.domain.SettingItemData
-import se.kalind.searchanywhere.domain.SettingsRepository
 import se.kalind.searchanywhere.domain.UnixTimeMs
 import se.kalind.searchanywhere.domain.WorkResult
-import se.kalind.searchanywhere.domain.usecases.SettingItem
+import se.kalind.searchanywhere.domain.repo.SettingItem
+import se.kalind.searchanywhere.domain.repo.SettingItemData
+import se.kalind.searchanywhere.domain.repo.SettingsRepository
 import java.lang.reflect.Field
 
 class DefaultSettingsRepository(
@@ -51,7 +51,7 @@ class DefaultSettingsRepository(
             updateTime = System.currentTimeMillis(),
         )
         @OptIn(DelicateCoroutinesApi::class)
-        GlobalScope.launch(Dispatchers.Default) {
+        GlobalScope.launch(Dispatchers.IO) {
             settingHistoryDao.saveToHistory(entity)
         }
     }

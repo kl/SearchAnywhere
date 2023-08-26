@@ -22,13 +22,13 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import se.kalind.searchanywhere.domain.ItemType
 import se.kalind.searchanywhere.domain.WorkResult
-import se.kalind.searchanywhere.domain.usecases.AppItem
-import se.kalind.searchanywhere.domain.usecases.FileItem
+import se.kalind.searchanywhere.domain.repo.AppItem
+import se.kalind.searchanywhere.domain.repo.FileItem
+import se.kalind.searchanywhere.domain.repo.SettingItem
 import se.kalind.searchanywhere.domain.usecases.FilesUseCases
 import se.kalind.searchanywhere.domain.usecases.GetAppsUseCase
 import se.kalind.searchanywhere.domain.usecases.GetSettingsUseCase
 import se.kalind.searchanywhere.domain.usecases.HistoryUseCases
-import se.kalind.searchanywhere.domain.usecases.SettingItem
 import se.kalind.searchanywhere.domain.usecases.WeightedItem
 import se.kalind.searchanywhere.ui.Loading
 import se.kalind.searchanywhere.ui.findMainActivity
@@ -186,6 +186,7 @@ class SearchScreenViewModel @Inject constructor(
 
             is ItemType.File -> {
                 Log.d("LOGZ", "open file: ${item.item.displayName}")
+                history.saveToHistory(item)
             }
         }
     }

@@ -2,10 +2,10 @@ package se.kalind.searchanywhere.domain.usecases
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import se.kalind.searchanywhere.domain.AppsRepository
-import se.kalind.searchanywhere.domain.FilesRepository
 import se.kalind.searchanywhere.domain.ItemType
-import se.kalind.searchanywhere.domain.SettingsRepository
+import se.kalind.searchanywhere.domain.repo.AppsRepository
+import se.kalind.searchanywhere.domain.repo.FilesRepository
+import se.kalind.searchanywhere.domain.repo.SettingsRepository
 import javax.inject.Inject
 
 class HistoryUseCases @Inject constructor(
@@ -14,20 +14,14 @@ class HistoryUseCases @Inject constructor(
     private val filesRepository: FilesRepository,
 ) {
     val getHistory: Flow<List<ItemType>> =
-        combine(appRepository.history(), settingsRepository.history()) { appHist, settingHist ->
-            val appItems = appHist.map { item ->
-                val (data, updatedAt) = item
-                val itemType = ItemType.App(AppItem.fromData(data))
-                Pair(itemType, updatedAt)
-            }
-            val settingItems = settingHist.map { item ->
-                val (data, updatedAt) = item
-                val itemType = ItemType.Setting(SettingItem.fromData(data))
-                Pair(itemType, updatedAt)
-            }
-            (appItems + settingItems)
+        combine(
+            appRepository.history(),
+            settingsRepository.history(),
+            filesRepository.history()
+        ) { appHist, settingHist, fileHist ->
+            (appHist + settingHist + fileHist)
                 .sortedByDescending { (_, updatedAt) -> updatedAt }
-                .map { (item, _) -> item }
+                .map { (item, _) -> item.toItemType() }
         }
 
     fun saveToHistory(item: ItemType) {

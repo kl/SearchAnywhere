@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "fa3e7a70d4a4387e68fe7e1e8c213f68",
+    "identityHash": "2394a3167572651ba329faa23c1116ab",
     "entities": [
       {
         "tableName": "app_item_history",
@@ -85,12 +85,38 @@
         },
         "indices": [],
         "foreignKeys": []
+      },
+      {
+        "tableName": "file_item_history",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`full_path` TEXT NOT NULL, `update_time` INTEGER NOT NULL, PRIMARY KEY(`full_path`))",
+        "fields": [
+          {
+            "fieldPath": "fullPath",
+            "columnName": "full_path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updateTime",
+            "columnName": "update_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "full_path"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fa3e7a70d4a4387e68fe7e1e8c213f68')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2394a3167572651ba329faa23c1116ab')"
     ]
   }
 }

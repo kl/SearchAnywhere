@@ -2,14 +2,13 @@ package se.kalind.searchanywhere.domain.usecases
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import se.kalind.searchanywhere.domain.FilesRepository
-import se.kalind.searchanywhere.domain.ScanRoot
 import se.kalind.searchanywhere.domain.WorkResult
+import se.kalind.searchanywhere.domain.repo.FileItem
+import se.kalind.searchanywhere.domain.repo.FilesRepository
+import se.kalind.searchanywhere.domain.repo.ScanRoot
 import javax.inject.Inject
 
 typealias FileItems = List<WeightedItem<FileItem>>
-
-data class FileItem(override val displayName: String) : DisplayName
 
 class FilesUseCases @Inject constructor(
     private val filesRepository: FilesRepository,
