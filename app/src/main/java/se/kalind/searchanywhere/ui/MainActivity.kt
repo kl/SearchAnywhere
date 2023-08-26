@@ -1,10 +1,16 @@
 package se.kalind.searchanywhere.ui
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import se.kalind.searchanywhere.ui.theme.AppTheme
+
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -35,19 +42,50 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private var requestPermissionCallback: ((Boolean) -> Unit)? = null
-    private val requestPermissionLauncher =
+    private var requestFilePermissionCallback: ((Boolean) -> Unit)? = null
+    private val requestFilePermission =
         registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
             Log.d("LOGZ", permissions.toString())
             val allGranted = permissions.all { it.value }
-            requestPermissionCallback?.invoke(allGranted)
-            requestPermissionCallback = null
+            requestFilePermissionCallback?.invoke(allGranted)
+            requestFilePermissionCallback = null
         }
 
+    private var requestStorageManagerPermissionCallback: ((Boolean) -> Unit)? = null
+    private var requestStorageManagerPermission = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            requestStorageManagerPermissionCallback?.invoke(Environment.isExternalStorageManager())
+            requestStorageManagerPermissionCallback = null
+            if (!Environment.isExternalStorageManager()) {
+                Log.d("LOGZ", "STORAGE MANAGER PERMISSION DENIED")
+            }
+        }
+    }
+
     fun requestFilePermissions(callback: (Boolean) -> Unit) {
-        when {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (Environment.isExternalStorageManager()) {
+                callback(true)
+            } else {
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                    intent.addCategory("android.intent.category.DEFAULT")
+                    intent.data =
+                        Uri.parse(String.format("package:%s", packageName))
+                    requestStorageManagerPermissionCallback = callback
+                    requestStorageManagerPermission.launch(intent)
+                } catch (e: ActivityNotFoundException) {
+                    val intent = Intent()
+                    intent.action = Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
+                    requestStorageManagerPermissionCallback = callback
+                    requestStorageManagerPermission.launch(intent)
+                }
+            }
+        } else when {
             isGranted(
                 Manifest.permission.READ_EXTERNAL_STORAGE,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -56,19 +94,12 @@ class MainActivity : ComponentActivity() {
             }
 
             shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) -> {
-                // In an educational UI, explain to the user why your app requires this
-                // permission for a specific feature to behave as expected, and what
-                // features are disabled if it's declined. In this UI, include a
-                // "cancel" or "no thanks" button that lets the user continue
-                // using your app without granting the permission.
                 Log.d("LOGZ", "SHOULD SHOW")
             }
 
             else -> {
-                // You can directly ask for the permission.
-                // The registered ActivityResultCallback gets the result of this request.
-                requestPermissionCallback = callback
-                requestPermissionLauncher.launch(
+                requestFilePermissionCallback = callback
+                requestFilePermission.launch(
                     arrayOf(
                         Manifest.permission.READ_EXTERNAL_STORAGE,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE

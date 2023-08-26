@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,7 +32,9 @@ import se.kalind.searchanywhere.domain.usecases.GetSettingsUseCase
 import se.kalind.searchanywhere.domain.usecases.HistoryUseCases
 import se.kalind.searchanywhere.domain.usecases.WeightedItem
 import se.kalind.searchanywhere.ui.Loading
+import se.kalind.searchanywhere.ui.SearchAnywhereFileProvider
 import se.kalind.searchanywhere.ui.findMainActivity
+import java.io.File
 import javax.inject.Inject
 
 sealed class IconType {
@@ -61,13 +64,9 @@ class SearchScreenViewModel @Inject constructor(
     private val history: HistoryUseCases,
 ) : ViewModel() {
 
-    private var permissionsGranted = false
-
-//    init {
-//        files.rebuildDatabase(ScanRoot.INTERNAL)
-//    }
-
-//    private val files: MutableStateFlow<ArrayList<String>> = MutableStateFlow(ArrayList())
+    // Keeps track of wheter we are allowed to read/write files on external storage.
+    // If this is false we do not try to search the file database.
+    private var filePermissionsGranted = false
 
     private val _messages = MutableSharedFlow<Message>(
         extraBufferCapacity = 1,
@@ -134,7 +133,9 @@ class SearchScreenViewModel @Inject constructor(
     fun onSearchChanged(filter: String) {
         getSettings.setFilter(filter)
         getApps.setFilter(filter)
-        files.setFilter(filter)
+        if (filePermissionsGranted) {
+            files.setFilter(filter)
+        }
     }
 
     fun onSearchFieldFocused(context: Context) {
@@ -147,6 +148,7 @@ class SearchScreenViewModel @Inject constructor(
             if (granted) {
                 files.createDatabaseIfNeeded()
             }
+            filePermissionsGranted = granted
         }
     }
 
@@ -185,8 +187,28 @@ class SearchScreenViewModel @Inject constructor(
             }
 
             is ItemType.File -> {
-                Log.d("LOGZ", "open file: ${item.item.displayName}")
+                val file = item.item
                 history.saveToHistory(item)
+
+                Log.d("LOGZ", "open file: ${file.displayName}")
+                val uri = FileProvider.getUriForFile(
+                    context, SearchAnywhereFileProvider.AUTHORITY, File(file.displayName)
+                )
+                val type =
+                    SearchAnywhereFileProvider.getMimeType(file.displayName) ?: "text/plain" // yolo
+
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.setDataAndType(uri, type)
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+
+                try {
+                    context.startActivity(intent)
+                } catch (e: ActivityNotFoundException) {
+                    // Define what your app should do if no activity can handle the intent.
+                    Log.d("LOGZ", "failed to open file")
+                    val ret = _messages.tryEmit(Message("Couldn't open file", item))
+                    Log.d("LOGZ", "$ret")
+                }
             }
         }
     }

@@ -47,7 +47,14 @@ class DefaultFilesRepository(
 
     override fun search(query: String): WorkResult<Array<String>> {
         return try {
-            WorkResult.Success(lib.nativeFindFiles(databaseFilePath, query))
+            if (File(databaseFilePath).isFile) {
+                WorkResult.Success(lib.nativeFindFiles(databaseFilePath, query))
+            } else {
+                // The database file may be missing because it hasn't finished building yet in which
+                // case we ignore that and return an empty result
+                Log.w("SearchAnywhere", "search: database file does not exist")
+                WorkResult.Success(emptyArray())
+            }
         } catch (e: Exception) {
             WorkResult.Error(e)
         }
