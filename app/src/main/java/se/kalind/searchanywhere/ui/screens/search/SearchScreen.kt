@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,15 +57,12 @@ fun SearchScreen(
     modifier: Modifier = Modifier,
     viewModel: SearchScreenViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-
     val message by viewModel.messages.collectAsStateWithLifecycle(
         initialValue = Message(
             "",
             0
         )
     )
-
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -72,6 +71,32 @@ fun SearchScreen(
             snackbarHostState.showSnackbar(message.message)
         }
     }
+
+    val showPermissionRationale by viewModel.showPermissionRationale.collectAsStateWithLifecycle()
+
+    if (showPermissionRationale != null) {
+        AlertDialog(
+            onDismissRequest = { showPermissionRationale?.invoke() },
+            title = { Text("Why this app requests external storage permissions") },
+            text = {
+                Text(
+                    "Granting storage read/write permissions lets you search for files " +
+                            "on the external storage. The write permission is needed to create " +
+                            "the file cache database which enables fast file searches. " +
+                            "If you do not grant this permission the app will not find files but " +
+                            "will still find Apps and Settings."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showPermissionRationale?.invoke() }) {
+                    Text("ok".uppercase())
+                }
+            },
+        )
+    }
+
+
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     val searchText = rememberSaveable { mutableStateOf("") }
 

@@ -24,6 +24,11 @@ import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import se.kalind.searchanywhere.ui.theme.AppTheme
 
+interface PermissionStatusCallback {
+    fun onGranted()
+    fun onDenied()
+    fun onShowRationale(afterShown: () -> Unit)
+}
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -42,34 +47,38 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private var requestFilePermissionCallback: ((Boolean) -> Unit)? = null
+    private var requestFilePermissionCallback: PermissionStatusCallback? = null
     private val requestFilePermission =
         registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
-            Log.d("LOGZ", permissions.toString())
             val allGranted = permissions.all { it.value }
-            requestFilePermissionCallback?.invoke(allGranted)
+            if (allGranted) {
+                requestFilePermissionCallback?.onGranted()
+            } else {
+                requestFilePermissionCallback?.onDenied()
+            }
             requestFilePermissionCallback = null
         }
 
-    private var requestStorageManagerPermissionCallback: ((Boolean) -> Unit)? = null
+    private var requestStorageManagerPermissionCallback: PermissionStatusCallback? = null
     private var requestStorageManagerPermission = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            requestStorageManagerPermissionCallback?.invoke(Environment.isExternalStorageManager())
-            requestStorageManagerPermissionCallback = null
-            if (!Environment.isExternalStorageManager()) {
-                Log.d("LOGZ", "STORAGE MANAGER PERMISSION DENIED")
+            if (Environment.isExternalStorageManager()) {
+                requestStorageManagerPermissionCallback?.onGranted()
+            } else {
+                requestStorageManagerPermissionCallback?.onDenied()
             }
+            requestStorageManagerPermissionCallback = null
         }
     }
 
-    fun requestFilePermissions(callback: (Boolean) -> Unit) {
+    fun requestFilePermissions(callback: PermissionStatusCallback) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (Environment.isExternalStorageManager()) {
-                callback(true)
+                callback.onGranted()
             } else {
                 try {
                     val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
@@ -90,11 +99,19 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.READ_EXTERNAL_STORAGE,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
             ) -> {
-                callback(true)
+                callback.onGranted()
             }
 
             shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) -> {
-                Log.d("LOGZ", "SHOULD SHOW")
+                callback.onShowRationale {
+                    requestFilePermissionCallback = callback
+                    requestFilePermission.launch(
+                        arrayOf(
+                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        )
+                    )
+                }
             }
 
             else -> {

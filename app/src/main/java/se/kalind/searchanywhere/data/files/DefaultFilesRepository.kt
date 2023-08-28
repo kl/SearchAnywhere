@@ -14,6 +14,7 @@ import se.kalind.searchanywhere.domain.repo.FileItem
 import se.kalind.searchanywhere.domain.repo.FilesRepository
 import se.kalind.searchanywhere.domain.repo.ScanRoot
 import java.io.File
+import kotlin.time.measureTimedValue
 
 class DefaultFilesRepository(
     private val lib: AnlocateLibrary,
@@ -48,7 +49,11 @@ class DefaultFilesRepository(
     override fun search(query: String): WorkResult<Array<String>> {
         return try {
             if (File(databaseFilePath).isFile) {
-                WorkResult.Success(lib.nativeFindFiles(databaseFilePath, query))
+                val (files, duration) = measureTimedValue {
+                    lib.nativeFindFiles(databaseFilePath, query)
+                }
+                Log.i("SearchAnywhere", "native search: ${duration.inWholeMilliseconds} ms")
+                WorkResult.Success(files)
             } else {
                 // The database file may be missing because it hasn't finished building yet in which
                 // case we ignore that and return an empty result

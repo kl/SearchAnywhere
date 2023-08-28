@@ -15,6 +15,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,7 @@ import se.kalind.searchanywhere.domain.usecases.GetSettingsUseCase
 import se.kalind.searchanywhere.domain.usecases.HistoryUseCases
 import se.kalind.searchanywhere.domain.usecases.WeightedItem
 import se.kalind.searchanywhere.ui.Loading
+import se.kalind.searchanywhere.ui.PermissionStatusCallback
 import se.kalind.searchanywhere.ui.SearchAnywhereFileProvider
 import se.kalind.searchanywhere.ui.findMainActivity
 import java.io.File
@@ -68,13 +70,18 @@ class SearchScreenViewModel @Inject constructor(
     // If this is false we do not try to search the file database.
     private var filePermissionsGranted = false
 
+    // Messages that are shown one time only in a snackbar
     private val _messages = MutableSharedFlow<Message>(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
-
     val messages: SharedFlow<Message> = _messages
 
+    // When set to a non-null value a dialog is shown explaining why we ask for file permissions.
+    private val _showPermissionRationale: MutableStateFlow<(() -> Unit)?> = MutableStateFlow(null)
+    val showPermissionRationale: StateFlow<(() -> Unit)?> = _showPermissionRationale
+
+    // The main UI state
     val uiState: StateFlow<UiState> =
         combine(
             getSettings.filteredSettings,
@@ -141,15 +148,29 @@ class SearchScreenViewModel @Inject constructor(
     fun onSearchFieldFocused(context: Context) {
         // context passed from Compose so we should always be able to get the MainActivity
         val activity = context.findMainActivity()!!
-        Log.d("LOGZ", "FOCUSED: true")
 
-        activity.requestFilePermissions { granted ->
-            Log.d("LOGZ", "permissions granted: $granted (viewmodel)")
-            if (granted) {
+        activity.requestFilePermissions(object : PermissionStatusCallback {
+            override fun onGranted() {
+                Log.d("SearchAnywhere", "file permissions granted")
                 files.createDatabaseIfNeeded()
+                filePermissionsGranted = true
             }
-            filePermissionsGranted = granted
-        }
+
+            override fun onDenied() {
+                Log.d("SearchAnywhere", "file permissions denied")
+                filePermissionsGranted = false
+            }
+
+            override fun onShowRationale(afterShown: () -> Unit) {
+                // The callback in _showPermissionRationale is called from Compose after the user
+                // has clicked away the rationale dialog. afterShown() will then trigger another
+                // permissions request which will call onGranted() or onDenied() on this object.
+                _showPermissionRationale.value = {
+                    afterShown()
+                    _showPermissionRationale.value = null
+                }
+            }
+        })
     }
 
     fun openItem(context: Context, item: ItemType) {
