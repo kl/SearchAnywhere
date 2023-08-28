@@ -11,10 +11,10 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private var requestFilePermissionCallback: PermissionStatusCallback? = null
-    private val requestFilePermission =
+    private val filePermissionRequest =
         registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
         }
 
     private var requestStorageManagerPermissionCallback: PermissionStatusCallback? = null
-    private var requestStorageManagerPermission = registerForActivityResult(
+    private var storageManagerPermissionRequest = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -80,18 +80,12 @@ class MainActivity : ComponentActivity() {
             if (Environment.isExternalStorageManager()) {
                 callback.onGranted()
             } else {
-                try {
-                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                    intent.addCategory("android.intent.category.DEFAULT")
-                    intent.data =
-                        Uri.parse(String.format("package:%s", packageName))
-                    requestStorageManagerPermissionCallback = callback
-                    requestStorageManagerPermission.launch(intent)
-                } catch (e: ActivityNotFoundException) {
-                    val intent = Intent()
-                    intent.action = Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
-                    requestStorageManagerPermissionCallback = callback
-                    requestStorageManagerPermission.launch(intent)
+                if (shouldShowRequestPermissionRationale(Manifest.permission.MANAGE_EXTERNAL_STORAGE)) {
+                    callback.onShowRationale {
+                        requestStorageManagerPermission(callback)
+                    }
+                } else {
+                    requestStorageManagerPermission(callback)
                 }
             }
         } else when {
@@ -104,25 +98,40 @@ class MainActivity : ComponentActivity() {
 
             shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) -> {
                 callback.onShowRationale {
-                    requestFilePermissionCallback = callback
-                    requestFilePermission.launch(
-                        arrayOf(
-                            Manifest.permission.READ_EXTERNAL_STORAGE,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                        )
-                    )
+                    requestReadWriteFilePermissions(callback)
                 }
             }
 
             else -> {
-                requestFilePermissionCallback = callback
-                requestFilePermission.launch(
-                    arrayOf(
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    )
-                )
+                requestReadWriteFilePermissions(callback)
             }
+        }
+    }
+
+    private fun requestReadWriteFilePermissions(callback: PermissionStatusCallback) {
+        requestFilePermissionCallback = callback
+        filePermissionRequest.launch(
+            arrayOf(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun requestStorageManagerPermission(callback: PermissionStatusCallback) {
+        try {
+            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            intent.addCategory("android.intent.category.DEFAULT")
+            intent.data =
+                Uri.parse(String.format("package:%s", packageName))
+            requestStorageManagerPermissionCallback = callback
+            storageManagerPermissionRequest.launch(intent)
+        } catch (e: ActivityNotFoundException) {
+            val intent = Intent()
+            intent.action = Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
+            requestStorageManagerPermissionCallback = callback
+            storageManagerPermissionRequest.launch(intent)
         }
     }
 
