@@ -111,7 +111,6 @@ class SearchScreenViewModel @Inject constructor(
                 history = histItems
             )
         }
-            .flowOn(Dispatchers.IO)
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
@@ -141,7 +140,7 @@ class SearchScreenViewModel @Inject constructor(
         getSettings.setFilter(filter)
         getApps.setFilter(filter)
         if (filePermissionsGranted) {
-            files.setFilter(filter)
+            files.search(filter)
         }
     }
 
@@ -184,14 +183,14 @@ class SearchScreenViewModel @Inject constructor(
                         context.startActivity(launchIntent)
                         history.saveToHistory(item)
                     } else {
-                        Log.d("LOGZ", "app unavailable")
+                        Log.d("SearchAnywhere", "app unavailable")
                         val ret = _messages.tryEmit(Message("Could not start app", app))
-                        Log.d("LOGZ", "$ret")
+                        Log.d("SearchAnywhere", "$ret")
                     }
                 } catch (e: ActivityNotFoundException) {
-                    Log.d("LOGZ", "app unavailable")
+                    Log.d("SearchAnywhere", "app unavailable")
                     val ret = _messages.tryEmit(Message("Could not start app", app))
-                    Log.d("LOGZ", "$ret")
+                    Log.d("SearchAnywhere", "$ret")
                 }
             }
 
@@ -201,9 +200,9 @@ class SearchScreenViewModel @Inject constructor(
                     context.startActivity(Intent(setting.fieldValue))
                     history.saveToHistory(item)
                 } catch (e: ActivityNotFoundException) {
-                    Log.d("LOGZ", "setting unavailable")
+                    Log.d("SearchAnywhere", "setting unavailable")
                     val ret = _messages.tryEmit(Message("Setting unavailable", item))
-                    Log.d("LOGZ", "$ret")
+                    Log.d("SearchAnywhere", "$ret")
                 }
             }
 
@@ -211,7 +210,7 @@ class SearchScreenViewModel @Inject constructor(
                 val file = item.item
                 history.saveToHistory(item)
 
-                Log.d("LOGZ", "open file: ${file.displayName}")
+                Log.d("SearchAnywhere", "open file: ${file.displayName}")
                 val uri = FileProvider.getUriForFile(
                     context, SearchAnywhereFileProvider.AUTHORITY, File(file.displayName)
                 )
@@ -226,9 +225,9 @@ class SearchScreenViewModel @Inject constructor(
                     context.startActivity(intent)
                 } catch (e: ActivityNotFoundException) {
                     // Define what your app should do if no activity can handle the intent.
-                    Log.d("LOGZ", "failed to open file")
+                    Log.d("SearchAnywhere", "failed to open file")
                     val ret = _messages.tryEmit(Message("Couldn't open file", item))
-                    Log.d("LOGZ", "$ret")
+                    Log.d("SearchAnywhere", "$ret")
                 }
             }
         }

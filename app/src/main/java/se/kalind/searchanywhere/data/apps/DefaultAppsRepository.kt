@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import se.kalind.searchanywhere.domain.UnixTimeMs
@@ -41,9 +42,7 @@ class DefaultAppsRepository(
                 if (resolveInfo == null) {
                     // If the application was uninstalled it is no longer resolvable so we filter it
                     // out and remove it from the history DB.
-                    GlobalScope.launch(Dispatchers.Default) {
-                        appHistoryDao.deleteFromHistory(entity)
-                    }
+                    appHistoryDao.deleteFromHistory(entity)
                     return@mapNotNull null
                 }
                 val item = AppItemData(
@@ -56,6 +55,7 @@ class DefaultAppsRepository(
                 Pair(item, entity.updateTime)
             }
         }
+            .flowOn(Dispatchers.IO)
     }
 
     override fun saveToHistory(item: AppItem) {

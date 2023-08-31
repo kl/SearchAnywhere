@@ -17,12 +17,10 @@ class GetAppsUseCase @Inject constructor(appsRepository: AppsRepository) {
 
     val filteredApps: Flow<WorkResult<AppItems>> =
         appsRepository.availableApps().combine(_filter) { apps, filter ->
-            val filtered = apps.map { appListData ->
+            apps.map { appListData ->
                 val appItems = appListData.map(AppItem::fromData)
                 filterItems(appItems, filter)
             }
-            Log.d("LOGZ", "emit filtered apps")
-            filtered
         }
 
     fun setFilter(filter: String) {

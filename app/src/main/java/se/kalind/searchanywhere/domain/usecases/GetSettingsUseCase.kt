@@ -17,12 +17,10 @@ class GetSettingsUseCase @Inject constructor(settingsRepository: SettingsReposit
 
     val filteredSettings: Flow<WorkResult<SettingItems>> =
         settingsRepository.availableSettings().combine(_filter) { settings, filter ->
-            val filtered = settings.map { settingsListData ->
+            settings.map { settingsListData ->
                 val settingItems = settingsListData.map(SettingItem::fromData)
                 filterItems(settingItems, filter)
             }
-            Log.d("LOGZ", "emit filtered settings")
-            filtered
         }
 
     fun setFilter(filter: String) {

@@ -8,10 +8,14 @@ import se.kalind.searchanywhere.domain.WorkResult
 import se.kalind.searchanywhere.domain.usecases.DisplayName
 
 interface FilesRepository {
+
+    val searchResults: Flow<FileSearchResult>
+
+    fun history(): Flow<List<Pair<FileItem, UnixTimeMs>>>
+
+    fun setSearchQuery(query: String)
     fun buildDatabase(scanRoot: ScanRoot)
     fun buildDatabaseIfNotExists(scanRoot: ScanRoot)
-    fun search(query: String): WorkResult<Array<String>>
-    fun history(): Flow<List<Pair<FileItem, UnixTimeMs>>>
     fun saveToHistory(item: FileItem)
 }
 
@@ -25,3 +29,8 @@ data class FileItem(override val displayName: String) : DisplayName, ToItemType 
         return ItemType.File(this)
     }
 }
+
+data class FileSearchResult(
+    val searchQuery: String,
+    val files: WorkResult<Array<String>>
+)
