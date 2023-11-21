@@ -1,9 +1,12 @@
 package se.kalind.searchanywhere.ui.screens.search
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,12 +17,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,13 +43,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,7 +64,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.launch
 import se.kalind.searchanywhere.domain.ItemType
+import se.kalind.searchanywhere.domain.repo.FileItem
 import se.kalind.searchanywhere.ui.Loading
+import se.kalind.searchanywhere.ui.components.LongPressCard
 import se.kalind.searchanywhere.ui.theme.alegreyaFamily
 
 @Composable
@@ -95,7 +112,6 @@ fun SearchScreen(
         )
     }
 
-
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     val searchText = rememberSaveable { mutableStateOf("") }
@@ -113,7 +129,7 @@ fun SearchScreen(
             items = state.items,
             history = state.history,
             searchText = searchText.value,
-            onItemClick = { item -> viewModel.openItem(context, item) },
+            onItemAction = { item -> viewModel.onItemAction(context, item) },
             onSearchChanged = { filter ->
                 searchText.value = filter
                 viewModel.onSearchChanged(searchText.value)
@@ -128,7 +144,7 @@ internal fun SearchScreenContent(
     items: List<SearchItem>,
     history: Loading<List<SearchItem>>,
     searchText: String,
-    onItemClick: (ItemType) -> Unit,
+    onItemAction: (ItemAction) -> Unit,
     onSearchChanged: (String) -> Unit,
     onSearchFieldFocused: () -> Unit,
 ) {
@@ -145,8 +161,9 @@ internal fun SearchScreenContent(
             if (!histItems.isNullOrEmpty()) {
                 ItemList(
                     items = histItems,
-                    onItemClick = onItemClick,
+                    onItemAction = onItemAction,
                     headerText = "History",
+                    isHistory = true,
                 )
             } else {
                 if (history.hasLoaded()) {
@@ -165,7 +182,7 @@ internal fun SearchScreenContent(
                 }
             }
         } else {
-            ItemList(items = items, onItemClick = onItemClick)
+            ItemList(items = items, onItemAction = onItemAction)
         }
     }
 }
@@ -219,8 +236,9 @@ private fun SearchTextField(
 @Composable
 private fun ItemList(
     items: List<SearchItem>,
-    onItemClick: (ItemType) -> Unit,
+    onItemAction: (ItemAction) -> Unit,
     headerText: String? = null,
+    isHistory: Boolean = false,
 ) {
     LazyColumn {
         item {
@@ -243,55 +261,120 @@ private fun ItemList(
             items = items,
             key = { it.key },
         ) { setting ->
-            ItemRow(
+            ItemCard(
+                modifier = Modifier.animateItemPlacement(),
                 item = setting,
-                onClick = onItemClick,
-                modifier = Modifier.animateItemPlacement()
+                onItemAction = onItemAction,
+                isHistory = isHistory,
             )
         }
     }
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ItemRow(
+private fun ItemCard(
+    modifier: Modifier = Modifier,
     item: SearchItem,
-    onClick: (item: ItemType) -> Unit,
-    modifier: Modifier = Modifier
+    onItemAction: (item: ItemAction) -> Unit,
+    isHistory: Boolean = false,
 ) {
+    var isContextMenuVisible by rememberSaveable {
+        mutableStateOf(false)
+    }
+    var pressOffset by remember {
+        mutableStateOf(DpOffset.Zero)
+    }
+    var itemHeight by remember {
+        mutableStateOf(0.dp)
+    }
+    val density = LocalDensity.current
+
+    /*
+    TODO: the offsets are not currently used because when using the LongPressCard the ripple
+    gets shown when scrolling the list (and it should not).
+     */
     Card(
         modifier = modifier
-            .padding(vertical = 4.dp, horizontal = 4.dp),
-        // .clickable modifier doesn't render the ripple correctly
-        onClick = { onClick(item.item) },
-    ) {
-        Row(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.background)
-                .padding(14.dp)
-                .fillMaxWidth()
-        ) {
-            val icon = item.icon
-            when (icon) {
-                is IconType.Vector -> {
-                    Icon(
-                        icon.icon,
-                        contentDescription = "item icon",
-                        modifier = Modifier.size(28.dp)
-                    )
+            .padding(vertical = 4.dp, horizontal = 4.dp)
+            .clip(CardDefaults.shape)
+            .combinedClickable(
+                onClick = { onItemAction(ItemAction.Open(item.item)) },
+                onLongClick = {
+                    isContextMenuVisible = true
                 }
-
-                is IconType.Drawable -> {
-                    Image(
-                        painter = rememberDrawablePainter(drawable = icon.icon),
-                        contentDescription = "item icon",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
+            )
+            .onSizeChanged {
+                itemHeight = with(density) { it.height.toDp() }
+            },
+        /*
+        onTap = { onItemAction(ItemAction.Open(item.item)) },
+        onLongPress = { offset ->
+            pressOffset = with(density) {
+                DpOffset(offset.x.toDp(), offset.y.toDp())
             }
-            Spacer(Modifier.width(10.dp))
-            Text(text = item.displayName)
+            isContextMenuVisible = true
+        },
+         */
+    ) {
+
+        ItemCardContent(item)
+        DropdownMenu(
+            expanded = isContextMenuVisible,
+            onDismissRequest = { isContextMenuVisible = false },
+            offset = pressOffset.copy(
+                y = pressOffset.y - itemHeight
+            )
+        ) {
+            DropdownItems(item.item, isHistory) { action ->
+                isContextMenuVisible = false
+                onItemAction(action)
+            }
         }
+    }
+}
+
+@Composable
+fun DropdownItems(item: ItemType, isHistory: Boolean, onItemAction: (ItemAction) -> Unit) {
+    if (isHistory) {
+        DropdownMenuItem(
+            text = { Text("Delete from history") },
+            onClick = { onItemAction(ItemAction.DeleteFromHistory(item)) })
+    }
+    if (item is ItemType.File) {
+        DropdownMenuItem(
+            text = { Text("Open folder") },
+            onClick = { onItemAction(ItemAction.OpenDirectory(item.item)) })
+    }
+}
+
+@Composable
+private fun ItemCardContent(
+    item: SearchItem,
+) {
+    Row(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.background)
+            .padding(14.dp)
+            .fillMaxWidth()
+    ) {
+        when (val icon = item.icon) {
+            is IconType.Vector -> {
+                Icon(
+                    icon.icon,
+                    contentDescription = "item icon",
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            is IconType.Drawable -> {
+                Image(
+                    painter = rememberDrawablePainter(drawable = icon.icon),
+                    contentDescription = "item icon",
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(text = item.displayName)
     }
 }

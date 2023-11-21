@@ -1,6 +1,7 @@
 package se.kalind.searchanywhere.data.settings
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -12,4 +13,7 @@ interface SettingHistoryDao {
 
     @Upsert
     fun saveToHistory(item: SettingHistoryEntity)
+
+    @Delete
+    fun deleteFromHistory(item: SettingHistoryEntity)
 }

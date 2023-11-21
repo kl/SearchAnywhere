@@ -47,14 +47,14 @@ class DefaultSettingsRepository(
     }
 
     override fun saveToHistory(item: SettingItem) {
-        val entity = SettingHistoryEntity(
-            id = item.id,
-            fieldName = item.fieldName,
-            fieldValue = item.fieldValue,
-            updateTime = System.currentTimeMillis(),
-        )
         GlobalScope.launch(Dispatchers.IO) {
-            settingHistoryDao.saveToHistory(entity)
+            settingHistoryDao.saveToHistory(item.toEntity())
+        }
+    }
+
+    override fun deleteFromHistory(item: SettingItem) {
+        GlobalScope.launch(Dispatchers.IO) {
+            settingHistoryDao.deleteFromHistory(item.toEntity())
         }
     }
 
@@ -77,4 +77,13 @@ class DefaultSettingsRepository(
                 java.lang.reflect.Modifier.isStatic(f.modifiers)
             }
     }
+}
+
+private fun SettingItem.toEntity(): SettingHistoryEntity {
+    return SettingHistoryEntity(
+        id = id,
+        fieldName = fieldName,
+        fieldValue = fieldValue,
+        updateTime = System.currentTimeMillis(),
+    )
 }

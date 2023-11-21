@@ -89,12 +89,21 @@ class DefaultFilesRepository(
             .flowOn(Dispatchers.IO)
 
     override fun saveToHistory(item: FileItem) {
-        val entity = FileHistoryEntity(
-            fullPath = item.displayName,
-            updateTime = System.currentTimeMillis(),
-        )
         GlobalScope.launch(Dispatchers.IO) {
-            fileHistoryDao.saveToHistory(entity)
+            fileHistoryDao.saveToHistory(item.toEntity())
         }
     }
+
+    override fun deleteFromHistory(item: FileItem) {
+        GlobalScope.launch(Dispatchers.IO) {
+            fileHistoryDao.deleteFromHistory(item.toEntity())
+        }
+    }
+}
+
+private fun FileItem.toEntity(): FileHistoryEntity {
+    return FileHistoryEntity(
+        fullPath = displayName,
+        updateTime = System.currentTimeMillis(),
+    )
 }

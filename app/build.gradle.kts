@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "se.kalind.searchanywhere"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "se.kalind.searchanywhere"
         minSdk = 23
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -69,7 +69,7 @@ android {
 
 dependencies {
 
-    val composeBom = platform("androidx.compose:compose-bom:2023.06.01")
+    val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
@@ -104,6 +104,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation("androidx.compose.material:material-icons-extended:1.5.4")
     // Accompanist
     implementation(libs.accompanist.drawablepainter)
 
@@ -118,7 +119,6 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
 
     // Instrumented tests: jUnit rules and runners
-
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)

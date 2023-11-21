@@ -10,8 +10,8 @@ import se.kalind.searchanywhere.domain.usecases.DisplayName
 interface SettingsRepository {
     fun availableSettings(): Flow<WorkResult<List<SettingItemData>>>
     fun history(): Flow<List<Pair<SettingItemData, UnixTimeMs>>>
-
     fun saveToHistory(item: SettingItem)
+    fun deleteFromHistory(item: SettingItem)
 }
 
 // The setting item data we expect the data layer to provide.

@@ -1,6 +1,7 @@
 package se.kalind.searchanywhere.data.files
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -12,4 +13,7 @@ interface FileHistoryDao {
 
     @Upsert
     fun saveToHistory(item: FileHistoryEntity)
+
+    @Delete
+    fun deleteFromHistory(item: FileHistoryEntity)
 }

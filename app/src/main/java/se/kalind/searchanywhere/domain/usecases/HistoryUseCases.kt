@@ -31,4 +31,12 @@ class HistoryUseCases @Inject constructor(
             is ItemType.File -> filesRepository.saveToHistory(item.item)
         }
     }
+
+    fun deleteFromHistory(item: ItemType) {
+        when (item) {
+            is ItemType.App -> appRepository.deleteFromHistory(item.item)
+            is ItemType.Setting -> settingsRepository.deleteFromHistory(item.item)
+            is ItemType.File -> filesRepository.deleteFromHistory(item.item)
+        }
+    }
 }

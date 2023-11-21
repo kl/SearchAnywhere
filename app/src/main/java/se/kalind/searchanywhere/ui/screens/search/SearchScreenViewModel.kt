@@ -3,16 +3,16 @@ package se.kalind.searchanywhere.ui.screens.search
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.provider.DocumentsContract
 import android.util.Log
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import se.kalind.searchanywhere.domain.ItemType
 import se.kalind.searchanywhere.domain.WorkResult
@@ -57,6 +56,12 @@ data class UiState(
 )
 
 data class Message(val message: String, val key: Any)
+
+sealed class ItemAction {
+    data class Open(val item: ItemType) : ItemAction()
+    data class OpenDirectory(val item: FileItem) : ItemAction()
+    data class DeleteFromHistory(val item: ItemType) : ItemAction()
+}
 
 @HiltViewModel
 class SearchScreenViewModel @Inject constructor(
@@ -104,7 +109,7 @@ class SearchScreenViewModel @Inject constructor(
                 .sortedByDescending { it.weight }
                 .map { it.item }
 
-            val histItems = Loading(history.map(ItemType::toSearchItem))
+            val histItems = Loading(history.map { it.toSearchItem() })
 
             UiState(
                 items = items,
@@ -172,7 +177,24 @@ class SearchScreenViewModel @Inject constructor(
         })
     }
 
-    fun openItem(context: Context, item: ItemType) {
+    fun onItemAction(context: Context, action: ItemAction) {
+        when (action) {
+            is ItemAction.Open -> {
+                openItem(context, action.item)
+            }
+
+            is ItemAction.OpenDirectory -> {
+                history.saveToHistory(action.item.toItemType())
+                openFile(context, action.item, openParentDir = true)
+            }
+
+            is ItemAction.DeleteFromHistory -> {
+                history.deleteFromHistory(action.item)
+            }
+        }
+    }
+
+    private fun openItem(context: Context, item: ItemType) {
         when (item) {
             is ItemType.App -> {
                 val app = item.item
@@ -207,64 +229,82 @@ class SearchScreenViewModel @Inject constructor(
             }
 
             is ItemType.File -> {
-                val file = item.item
                 history.saveToHistory(item)
-
-                Log.d("SearchAnywhere", "open file: ${file.displayName}")
-                val uri = FileProvider.getUriForFile(
-                    context, SearchAnywhereFileProvider.AUTHORITY, File(file.displayName)
-                )
-                val type =
-                    SearchAnywhereFileProvider.getMimeType(file.displayName) ?: "text/plain" // yolo
-
-                val intent = Intent(Intent.ACTION_VIEW)
-                intent.setDataAndType(uri, type)
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-
-                try {
-                    context.startActivity(intent)
-                } catch (e: ActivityNotFoundException) {
-                    // Define what your app should do if no activity can handle the intent.
-                    Log.d("SearchAnywhere", "failed to open file")
-                    val ret = _messages.tryEmit(Message("Couldn't open file", item))
-                    Log.d("SearchAnywhere", "$ret")
-                }
+                openFile(context, item.item)
             }
         }
     }
-}
 
-fun SettingItem.toSearchItem(): SearchItem {
-    return SearchItem(
-        item = ItemType.Setting(this),
-        icon = IconType.Vector(Icons.Default.Settings),
-        displayName = this.displayName,
-        key = this.id,
-    )
-}
+    private fun openFile(context: Context, file: FileItem, openParentDir: Boolean = false) {
 
-fun AppItem.toSearchItem(): SearchItem {
-    return SearchItem(
-        item = ItemType.App(this),
-        icon = IconType.Drawable(this.icon),
-        displayName = this.displayName,
-        key = this.id,
-    )
-}
+        Log.d("SearchAnywhere", "open file: ${file.displayName}")
+        val fileObject = if (openParentDir) {
+            File(file.displayName).parentFile ?: run {
+                Log.w("SearchAnywhere", "${file.displayName} did not have a valid parent")
+                return
+            }
+        } else {
+            File(file.displayName)
+        }
 
-fun FileItem.toSearchItem(): SearchItem {
-    return SearchItem(
-        item = ItemType.File(this),
-        icon = IconType.Vector(Icons.Default.MailOutline),
-        displayName = this.displayName,
-        key = this.displayName,
-    )
-}
+        Log.d("LOGZ", fileObject.absolutePath)
+        val uri = FileProvider.getUriForFile(
+            context, SearchAnywhereFileProvider.AUTHORITY, fileObject
+        )
 
-fun ItemType.toSearchItem(): SearchItem {
-    return when (this) {
-        is ItemType.App -> item.toSearchItem()
-        is ItemType.Setting -> item.toSearchItem()
-        is ItemType.File -> item.toSearchItem()
+        val type = if (openParentDir) {
+            DocumentsContract.Document.MIME_TYPE_DIR
+        } else {
+            SearchAnywhereFileProvider.getMimeType(file.displayName)
+                ?: "text/plain" // yolo
+        }
+
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(uri, type)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+
+        try {
+            context.startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            // Define what your app should do if no activity can handle the intent.
+            Log.d("SearchAnywhere", "failed to open file")
+            val ret = _messages.tryEmit(Message("Couldn't open file", file))
+            Log.d("SearchAnywhere", "$ret")
+        }
+    }
+
+    fun SettingItem.toSearchItem(): SearchItem {
+        return SearchItem(
+            item = ItemType.Setting(this),
+            icon = IconType.Vector(Icons.Default.Settings),
+            displayName = this.displayName,
+            key = this.id,
+        )
+    }
+
+    fun AppItem.toSearchItem(): SearchItem {
+        return SearchItem(
+            item = ItemType.App(this),
+            icon = IconType.Drawable(this.icon),
+            displayName = this.displayName,
+            key = this.id,
+        )
+    }
+
+    fun FileItem.toSearchItem(): SearchItem {
+        return SearchItem(
+            item = ItemType.File(this),
+            icon = IconType.Vector(Icons.Default.FileOpen),
+            displayName = this.displayName,
+            key = this.displayName,
+        )
+    }
+
+    fun ItemType.toSearchItem(): SearchItem {
+        return when (this) {
+            is ItemType.App -> item.toSearchItem()
+            is ItemType.Setting -> item.toSearchItem()
+            is ItemType.File -> item.toSearchItem()
+        }
     }
 }

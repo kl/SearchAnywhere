@@ -12,6 +12,7 @@ interface AppsRepository {
     fun availableApps(): Flow<WorkResult<List<AppItemData>>>
     fun history(): Flow<List<Pair<AppItemData, UnixTimeMs>>>
     fun saveToHistory(item: AppItem)
+    fun deleteFromHistory(item: AppItem)
 }
 
 // The app item data we expect the data layer to provide.

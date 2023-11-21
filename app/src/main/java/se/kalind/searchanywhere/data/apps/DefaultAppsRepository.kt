@@ -59,15 +59,14 @@ class DefaultAppsRepository(
     }
 
     override fun saveToHistory(item: AppItem) {
-        val entity = AppHistoryEntity(
-            id = item.id,
-            label = item.label,
-            packageName = item.packageName,
-            activityName = item.activityName,
-            updateTime = System.currentTimeMillis(),
-        )
         GlobalScope.launch(Dispatchers.IO) {
-            appHistoryDao.saveToHistory(entity)
+            appHistoryDao.saveToHistory(item.toEntity())
+        }
+    }
+
+    override fun deleteFromHistory(item: AppItem) {
+        GlobalScope.launch(Dispatchers.IO) {
+            appHistoryDao.deleteFromHistory(item.toEntity())
         }
     }
 
@@ -109,4 +108,14 @@ class DefaultAppsRepository(
         intent.component = ComponentName(packageName, activityName)
         return context.packageManager.resolveActivity(intent, 0)
     }
+}
+
+private fun AppItem.toEntity(): AppHistoryEntity {
+    return AppHistoryEntity(
+        id = id,
+        label = label,
+        packageName = packageName,
+        activityName = activityName,
+        updateTime = System.currentTimeMillis(),
+    )
 }

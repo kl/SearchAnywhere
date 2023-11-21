@@ -17,6 +17,7 @@ interface FilesRepository {
     fun buildDatabase(scanRoot: ScanRoot)
     fun buildDatabaseIfNotExists(scanRoot: ScanRoot)
     fun saveToHistory(item: FileItem)
+    fun deleteFromHistory(item: FileItem)
 }
 
 enum class ScanRoot {
