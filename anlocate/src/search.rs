@@ -8,9 +8,10 @@ pub fn search(reader: &mut BufReader<impl Read>, search: &str) -> Result<Vec<Str
     let mut buf = Vec::new();
     util::read_line(reader, &mut buf)?;
     let first = decompress_line(&[], &buf)?;
+    let search_is_ascii = search.is_ascii();
 
     // prev is stored in this local or as the last element of `result` if it matched the search
-    let mut prev = if is_search_match(&first, search) {
+    let mut prev = if is_search_match(&first, search, search_is_ascii) {
         matches.push(first);
         None
     } else {
@@ -39,7 +40,7 @@ pub fn search(reader: &mut BufReader<impl Read>, search: &str) -> Result<Vec<Str
 
         let curr = decompress_line(prev_bytes, &buf)?;
 
-        if is_search_match(&curr, search) {
+        if is_search_match(&curr, search, search_is_ascii) {
             matches.push(curr);
             prev = None;
         } else {
@@ -50,8 +51,9 @@ pub fn search(reader: &mut BufReader<impl Read>, search: &str) -> Result<Vec<Str
     Ok(matches)
 }
 
-fn is_search_match(path: &str, search: &str) -> bool {
-    path.contains(search)
+#[inline]
+fn is_search_match(path: &str, search: &str, search_is_ascii: bool) -> bool {
+    util::caseless_contains(path, search, search_is_ascii)
 }
 
 fn decompress_line(prev: &[u8], curr: &[u8]) -> Result<String, FromUtf8Error> {

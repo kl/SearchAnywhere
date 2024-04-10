@@ -4,6 +4,9 @@ name = "anlocate"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies]
+unicase = "2.7.0"
+
 [dev-dependencies]
 tempdir = "0.3.7"
 

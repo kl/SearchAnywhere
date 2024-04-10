@@ -13,6 +13,9 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,12 +50,12 @@ data class SearchItem(
     val item: ItemType,
     val icon: IconType,
     val displayName: String,
-    val key: Any,
+    val key: String,
 )
 
 data class UiState(
-    val items: List<SearchItem>,
-    val history: Loading<List<SearchItem>>,
+    val items: ImmutableList<SearchItem>,
+    val history: Loading<ImmutableList<SearchItem>>,
 )
 
 data class Message(val message: String, val key: Any)
@@ -108,8 +111,9 @@ class SearchScreenViewModel @Inject constructor(
             val items = (appItems + settingItems + fileItems)
                 .sortedByDescending { it.weight }
                 .map { it.item }
+                .toImmutableList()
 
-            val histItems = Loading(history.map { it.toSearchItem() })
+            val histItems = Loading(history.map { it.toSearchItem() }.toImmutableList())
 
             UiState(
                 items = items,
@@ -120,7 +124,7 @@ class SearchScreenViewModel @Inject constructor(
                 viewModelScope,
                 SharingStarted.Eagerly,
                 UiState(
-                    items = emptyList(),
+                    items = persistentListOf(),
                     history = Loading(null),
                 ),
             )

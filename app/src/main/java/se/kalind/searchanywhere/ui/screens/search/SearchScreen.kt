@@ -1,12 +1,10 @@
 package se.kalind.searchanywhere.ui.screens.search
 
-import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -28,7 +25,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -48,8 +44,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -62,11 +56,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.launch
+import my.nanihadesuka.compose.LazyColumnScrollbar
+import my.nanihadesuka.compose.ScrollbarSelectionMode
 import se.kalind.searchanywhere.domain.ItemType
-import se.kalind.searchanywhere.domain.repo.FileItem
 import se.kalind.searchanywhere.ui.Loading
-import se.kalind.searchanywhere.ui.components.LongPressCard
 import se.kalind.searchanywhere.ui.theme.alegreyaFamily
 
 @Composable
@@ -141,8 +136,8 @@ fun SearchScreen(
 
 @Composable
 internal fun SearchScreenContent(
-    items: List<SearchItem>,
-    history: Loading<List<SearchItem>>,
+    items: ImmutableList<SearchItem>,
+    history: Loading<ImmutableList<SearchItem>>,
     searchText: String,
     onItemAction: (ItemAction) -> Unit,
     onSearchChanged: (String) -> Unit,
@@ -192,7 +187,6 @@ private fun SearchTextField(
     text: String,
     onSearchChanged: (String) -> Unit,
     onReceivedFocus: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
 
     OutlinedTextField(
@@ -235,38 +229,47 @@ private fun SearchTextField(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ItemList(
-    items: List<SearchItem>,
+    items: ImmutableList<SearchItem>,
     onItemAction: (ItemAction) -> Unit,
     headerText: String? = null,
     isHistory: Boolean = false,
 ) {
-    LazyColumn {
-        item {
-            Spacer(modifier = Modifier.padding(top = 10.dp))
-        }
-        if (headerText != null) {
+    val listState = rememberLazyListState()
+
+    LazyColumnScrollbar(
+        listState,
+        selectionMode = ScrollbarSelectionMode.Full,
+        alwaysShowScrollBar = false,
+        hideDelayMillis = 1200,
+    ) {
+        LazyColumn(state = listState) {
             item {
-                Text(
-                    text = headerText,
-                    textAlign = TextAlign.Center,
-                    fontSize = 20.sp,
-                    fontFamily = alegreyaFamily,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp, bottom = 5.dp),
+                Spacer(modifier = Modifier.padding(top = 10.dp))
+            }
+            if (headerText != null) {
+                item {
+                    Text(
+                        text = headerText,
+                        textAlign = TextAlign.Center,
+                        fontSize = 20.sp,
+                        fontFamily = alegreyaFamily,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp, bottom = 5.dp),
+                    )
+                }
+            }
+            items(
+                items = items,
+                key = { it.key },
+            ) { setting ->
+                ItemCard(
+                    modifier = Modifier.animateItemPlacement(),
+                    item = setting,
+                    onItemAction = onItemAction,
+                    isHistory = isHistory,
                 )
             }
-        }
-        items(
-            items = items,
-            key = { it.key },
-        ) { setting ->
-            ItemCard(
-                modifier = Modifier.animateItemPlacement(),
-                item = setting,
-                onItemAction = onItemAction,
-                isHistory = isHistory,
-            )
         }
     }
 }
@@ -366,6 +369,7 @@ private fun ItemCardContent(
                     modifier = Modifier.size(28.dp)
                 )
             }
+
             is IconType.Drawable -> {
                 Image(
                     painter = rememberDrawablePainter(drawable = icon.icon),
