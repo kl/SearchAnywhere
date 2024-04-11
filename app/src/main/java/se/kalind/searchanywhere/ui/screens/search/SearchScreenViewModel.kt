@@ -145,6 +145,7 @@ class SearchScreenViewModel @Inject constructor(
         }
     }
 
+
     fun onSearchChanged(filter: String) {
         getSettings.setFilter(filter)
         getApps.setFilter(filter)

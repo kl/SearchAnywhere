@@ -17,6 +17,7 @@ import se.kalind.searchanywhere.domain.repo.FilesRepository
 import se.kalind.searchanywhere.domain.repo.ScanRoot
 import se.kalind.searchanywhere.domain.repo.FileSearchResult
 import java.io.File
+import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
 
 @OptIn(DelicateCoroutinesApi::class)
@@ -39,7 +40,10 @@ class DefaultFilesRepository(
     override fun buildDatabase(scanRoot: ScanRoot) {
         GlobalScope.launch(Dispatchers.IO) {
             try {
-                lib.nativeBuildDatabase(databaseFilePath, externalMainScanRoot, tempDir)
+                val duration = measureTime {
+                    lib.nativeBuildDatabase(databaseFilePath, externalMainScanRoot, tempDir)
+                }
+                Log.i("SearchAnywhere","native build db: ${duration.inWholeMilliseconds} ms")
             } catch (e: Exception) {
                 if (e.message?.contains("permission denied", ignoreCase = true) == true) {
                     Log.e("SearchAnywhere", "buildDatabase: permission denied")
@@ -51,10 +55,8 @@ class DefaultFilesRepository(
     }
 
     override fun buildDatabaseIfNotExists(scanRoot: ScanRoot) {
-        GlobalScope.launch(Dispatchers.IO) {
-            if (!File(databaseFilePath).isFile) {
-                buildDatabase(scanRoot)
-            }
+        if (!File(databaseFilePath).isFile) {
+            buildDatabase(scanRoot)
         }
     }
 

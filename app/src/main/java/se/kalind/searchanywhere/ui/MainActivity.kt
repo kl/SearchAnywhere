@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,7 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
+import se.kalind.searchanywhere.domain.usecases.FilesUseCases
 import se.kalind.searchanywhere.ui.theme.AppTheme
+import javax.inject.Inject
 
 interface PermissionStatusCallback {
     fun onGranted()
@@ -32,8 +35,13 @@ interface PermissionStatusCallback {
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var files: FilesUseCases
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (isFilePermissionsGranted()) {
+            files.rebuildDatabase()
+        }
         setContent {
             AppTheme {
                 Surface(
@@ -89,10 +97,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } else when {
-            isGranted(
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            ) -> {
+            isFilePermissionsGranted() -> {
                 callback.onGranted()
             }
 
@@ -135,10 +140,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun isFilePermissionsGranted() =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            isGranted(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            )
+        }
+
     private fun isGranted(vararg permissions: String): Boolean {
         for (p in permissions) {
             val result =
-                ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                ContextCompat.checkSelfPermission(this, p)
             if (result != PackageManager.PERMISSION_GRANTED) {
                 return false
             }
