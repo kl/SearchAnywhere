@@ -1,10 +1,10 @@
 package se.kalind.searchanywhere.ui.screens.search
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,13 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -62,6 +62,7 @@ import my.nanihadesuka.compose.LazyColumnScrollbar
 import my.nanihadesuka.compose.ScrollbarSelectionMode
 import se.kalind.searchanywhere.domain.ItemType
 import se.kalind.searchanywhere.ui.Loading
+import se.kalind.searchanywhere.ui.components.LongPressCard
 import se.kalind.searchanywhere.ui.theme.alegreyaFamily
 
 @Composable
@@ -268,6 +269,7 @@ private fun ItemList(
                     item = setting,
                     onItemAction = onItemAction,
                     isHistory = isHistory,
+                    listState = listState,
                 )
             }
         }
@@ -279,8 +281,9 @@ private fun ItemList(
 private fun ItemCard(
     modifier: Modifier = Modifier,
     item: SearchItem,
-    onItemAction: (item: ItemAction) -> Unit,
+    listState: LazyListState,
     isHistory: Boolean = false,
+    onItemAction: (item: ItemAction) -> Unit,
 ) {
     var isContextMenuVisible by rememberSaveable {
         mutableStateOf(false)
@@ -293,24 +296,14 @@ private fun ItemCard(
     }
     val density = LocalDensity.current
 
-    /*
-    TODO: the offsets are not currently used because when using the LongPressCard the ripple
-    gets shown when scrolling the list (and it should not).
-     */
-    Card(
+    LongPressCard(
         modifier = modifier
             .padding(vertical = 4.dp, horizontal = 4.dp)
             .clip(CardDefaults.shape)
-            .combinedClickable(
-                onClick = { onItemAction(ItemAction.Open(item.item)) },
-                onLongClick = {
-                    isContextMenuVisible = true
-                }
-            )
             .onSizeChanged {
                 itemHeight = with(density) { it.height.toDp() }
             },
-        /*
+        listState = listState,
         onTap = { onItemAction(ItemAction.Open(item.item)) },
         onLongPress = { offset ->
             pressOffset = with(density) {
@@ -318,7 +311,6 @@ private fun ItemCard(
             }
             isContextMenuVisible = true
         },
-         */
     ) {
 
         ItemCardContent(item)
