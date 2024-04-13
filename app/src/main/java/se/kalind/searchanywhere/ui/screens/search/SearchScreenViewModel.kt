@@ -7,6 +7,7 @@ import android.os.Environment
 import android.os.Looper
 import android.provider.DocumentsContract
 import android.util.Log
+import android.webkit.MimeTypeMap
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.Settings
@@ -264,7 +265,7 @@ class SearchScreenViewModel @Inject constructor(
         val type = if (openParentDir) {
             DocumentsContract.Document.MIME_TYPE_DIR
         } else {
-            SearchAnywhereFileProvider.getMimeType(file) ?: "*/*"
+            MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileObject.extension) ?: "*/*"
         }
 
         val intent = Intent(Intent.ACTION_VIEW)
