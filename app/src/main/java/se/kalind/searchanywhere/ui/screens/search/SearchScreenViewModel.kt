@@ -263,8 +263,7 @@ class SearchScreenViewModel @Inject constructor(
         val type = if (openParentDir) {
             DocumentsContract.Document.MIME_TYPE_DIR
         } else {
-            SearchAnywhereFileProvider.getMimeType(file.displayName)
-                ?: "text/plain" // yolo
+            SearchAnywhereFileProvider.getMimeType(file.displayName) ?: "*/*"
         }
 
         val intent = Intent(Intent.ACTION_VIEW)
