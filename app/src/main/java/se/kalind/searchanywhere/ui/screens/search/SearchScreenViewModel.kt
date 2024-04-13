@@ -3,6 +3,7 @@ package se.kalind.searchanywhere.ui.screens.search
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.os.Environment
 import android.os.Looper
 import android.provider.DocumentsContract
 import android.util.Log
@@ -243,27 +244,27 @@ class SearchScreenViewModel @Inject constructor(
         }
     }
 
-    private fun openFile(context: Context, file: FileItem, openParentDir: Boolean = false) {
+    private fun openFile(context: Context, fileItem: FileItem, openParentDir: Boolean = false) {
+        val file =
+            Environment.getExternalStorageDirectory().absolutePath + "/${fileItem.displayName}"
 
-        Log.d("SearchAnywhere", "open file: ${file.displayName}")
+        Log.d("SearchAnywhere", "open file: $file")
         val fileObject = if (openParentDir) {
-            File(file.displayName).parentFile ?: run {
-                Log.w("SearchAnywhere", "${file.displayName} did not have a valid parent")
+            File(file).parentFile ?: run {
+                Log.w("SearchAnywhere", "$file did not have a valid parent")
                 return
             }
         } else {
-            File(file.displayName)
+            File(file)
         }
 
-        Log.d("LOGZ", fileObject.absolutePath)
         val uri = FileProvider.getUriForFile(
             context, SearchAnywhereFileProvider.AUTHORITY, fileObject
         )
-
         val type = if (openParentDir) {
             DocumentsContract.Document.MIME_TYPE_DIR
         } else {
-            SearchAnywhereFileProvider.getMimeType(file.displayName) ?: "*/*"
+            SearchAnywhereFileProvider.getMimeType(file) ?: "*/*"
         }
 
         val intent = Intent(Intent.ACTION_VIEW)

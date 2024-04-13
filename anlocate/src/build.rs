@@ -201,17 +201,6 @@ where
     P: Into<PathBuf>,
     F: Fn(Vec<PathBuf>) -> WalkStatus,
 {
-    #[inline]
-    fn strip_root(path: PathBuf, root: Option<&Path>) -> PathBuf {
-        if let Some(root) = root {
-            path.strip_prefix(root)
-                .expect("root was not prefix")
-                .to_path_buf()
-        } else {
-            path
-        }
-    }
-
     fn walk_dir_internal<F>(
         dir: PathBuf,
         remove_root: Option<&Path>, // if set the root (prefix path) will not be in the output
@@ -223,41 +212,42 @@ where
     where
         F: Fn(Vec<PathBuf>) -> WalkStatus,
     {
-        let mut entries = match fs::read_dir(&dir) {
-            Ok(entries) => entries.peekable(),
+        let entries = match fs::read_dir(dir) {
+            Ok(entries) => entries,
             // if permission denied, ignore and continue walk
             Err(err) if err.kind() == ErrorKind::PermissionDenied => return Ok(WalkStatus::Ok),
             Err(err) => return Err(err),
         };
-        if entries.peek().is_none() {
-            // dir is a leaf (empty dir) so add it to the files list
-            files.push(strip_root(dir, remove_root));
-        } else {
-            for entry in entries {
-                let entry = entry?;
-                let path = entry.path();
-                if path.is_dir() {
-                    let status =
-                        walk_dir_internal(path, remove_root, mem_limit, on_flush, files, size);
-                    if let Err(_) | Ok(WalkStatus::Aborted) = status {
-                        return status;
+        for entry in entries {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                let status = walk_dir_internal(path, remove_root, mem_limit, on_flush, files, size);
+                if let Err(_) | Ok(WalkStatus::Aborted) = status {
+                    return status;
+                }
+            } else {
+                let path = if let Some(root) = remove_root {
+                    path.strip_prefix(root)
+                        .expect("root was not prefix")
+                        .to_path_buf()
+                } else {
+                    path
+                };
+                let elem_size = path.as_os_str().as_bytes().len() + mem::size_of::<PathBuf>();
+                let new_size = *size + elem_size;
+                if new_size >= mem_limit {
+                    *size = elem_size;
+                    if on_flush(mem::take(files)) == WalkStatus::Aborted {
+                        return Ok(WalkStatus::Aborted);
                     }
                 } else {
-                    let path = strip_root(path, remove_root);
-                    let elem_size = path.as_os_str().as_bytes().len() + mem::size_of::<PathBuf>();
-                    let new_size = *size + elem_size;
-                    if new_size >= mem_limit {
-                        *size = elem_size;
-                        if on_flush(mem::take(files)) == WalkStatus::Aborted {
-                            return Ok(WalkStatus::Aborted);
-                        }
-                    } else {
-                        *size = new_size;
-                    }
-                    files.push(path);
+                    *size = new_size;
                 }
+                files.push(path);
             }
         }
+
         Ok(WalkStatus::Ok)
     }
 
@@ -302,10 +292,8 @@ mod tests {
         // println!("{}", String::from_utf8_lossy(&content));
 
         let expected: Vec<u8> = vec![
-            &[0], "tests/root/cmd".as_bytes(), &[b'\n'],
-            &[11], "usr/src/aardvark.c".as_bytes(), &[b'\n'],
+            &[0], "tests/root/usr/src/aardvark.c".as_bytes(), &[b'\n'],
             &[20], "rmadillo.c".as_bytes(), &[b'\n'],
-            &[15], "tmp/zoo".as_bytes(), &[b'\n'],
             &[11], "x/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/file1.sh".as_bytes(), &[b'\n'],
             // 253=needs 2 byte to store, 26=LSB, 1=MSB
             &[253, 26, 1], "2.jpg".as_bytes(), &[b'\n'],
@@ -330,13 +318,11 @@ mod tests {
         build_database(&db_path, "tests/root", options).unwrap();
         assert!(db_path.is_file());
         let content = fs::read(db_path).unwrap();
-        println!("{}", String::from_utf8_lossy(&content));
+        // println!("{}", String::from_utf8_lossy(&content));
 
         let expected: Vec<u8> = vec![
-            &[0], "cmd".as_bytes(), &[b'\n'],
             &[0], "usr/src/aardvark.c".as_bytes(), &[b'\n'],
             &[9], "rmadillo.c".as_bytes(), &[b'\n'],
-            &[4], "tmp/zoo".as_bytes(), &[b'\n'],
             &[0], "x/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/file1.sh".as_bytes(), &[b'\n'],
             // 253=needs 2 byte to store, 28=LSB, 1=MSB
             &[253, 15, 1], "2.jpg".as_bytes(), &[b'\n'],
