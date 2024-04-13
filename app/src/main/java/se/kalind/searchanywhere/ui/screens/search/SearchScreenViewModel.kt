@@ -98,13 +98,13 @@ class SearchScreenViewModel @Inject constructor(
             history.getHistory,
         ) { settings, apps, files, history ->
 
-            val settingItems = unwrapResultList(settings).map {
+            val settingItems = unwrapResultSequence(settings).map {
                 WeightedItem(it.weight, it.item.toSearchItem())
             }
-            val appItems = unwrapResultList(apps).map {
+            val appItems = unwrapResultSequence(apps).map {
                 WeightedItem(it.weight, it.item.toSearchItem())
             }
-            val fileItems = unwrapResultList(files).map {
+            val fileItems = unwrapResultSequence(files).map {
                 WeightedItem(it.weight, it.item.toSearchItem())
             }
 
@@ -129,7 +129,7 @@ class SearchScreenViewModel @Inject constructor(
                 ),
             )
 
-    private fun <T> unwrapResultList(result: WorkResult<List<T>>): List<T> {
+    private fun <T> unwrapResultSequence(result: WorkResult<Sequence<T>>): Sequence<T> {
         return if (result is WorkResult.Success) {
             result.data
         } else {
@@ -141,10 +141,9 @@ class SearchScreenViewModel @Inject constructor(
                     _messages.tryEmit(Message(message, result))
                 }
             }
-            emptyList()
+            emptySequence()
         }
     }
-
 
     fun onSearchChanged(filter: String) {
         getSettings.setFilter(filter)

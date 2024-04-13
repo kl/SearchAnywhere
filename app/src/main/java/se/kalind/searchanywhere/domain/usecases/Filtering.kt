@@ -4,9 +4,9 @@ import java.util.regex.Pattern
 
 private val WHITESPACE = Pattern.compile("\\s+")
 
-fun <T : DisplayName> filterItems(items: List<T>, filter: String): List<WeightedItem<T>> {
+fun <T : DisplayName> filterItems(items: Sequence<T>, filter: String): Sequence<WeightedItem<T>> {
     return if (filter.isEmpty()) {
-        emptyList()
+        emptySequence()
     } else {
         val filterLower = filter.lowercase()
         items.filter { item ->

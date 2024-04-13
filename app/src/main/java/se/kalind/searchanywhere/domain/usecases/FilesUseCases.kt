@@ -8,7 +8,7 @@ import se.kalind.searchanywhere.domain.repo.FilesRepository
 import se.kalind.searchanywhere.domain.repo.ScanRoot
 import javax.inject.Inject
 
-typealias FileItems = List<WeightedItem<FileItem>>
+typealias FileItems = Sequence<WeightedItem<FileItem>>
 
 class FilesUseCases @Inject constructor(
     private val filesRepository: FilesRepository,
@@ -16,7 +16,7 @@ class FilesUseCases @Inject constructor(
     val filteredFiles: Flow<WorkResult<FileItems>> =
         filesRepository.searchResults.map { searchResult ->
             searchResult.files.map { files ->
-                val fileItems = files.map { FileItem(it) }
+                val fileItems = files.asSequence().map { FileItem(it) }
                 filterItems(fileItems, searchResult.searchQuery)
             }
         }

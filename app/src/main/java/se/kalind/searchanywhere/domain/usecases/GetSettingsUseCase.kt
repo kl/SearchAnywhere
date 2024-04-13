@@ -9,7 +9,7 @@ import se.kalind.searchanywhere.domain.repo.SettingItem
 import se.kalind.searchanywhere.domain.repo.SettingsRepository
 import javax.inject.Inject
 
-typealias SettingItems = List<WeightedItem<SettingItem>>
+typealias SettingItems = Sequence<WeightedItem<SettingItem>>
 
 class GetSettingsUseCase @Inject constructor(settingsRepository: SettingsRepository) {
 
@@ -18,7 +18,7 @@ class GetSettingsUseCase @Inject constructor(settingsRepository: SettingsReposit
     val filteredSettings: Flow<WorkResult<SettingItems>> =
         settingsRepository.availableSettings().combine(_filter) { settings, filter ->
             settings.map { settingsListData ->
-                val settingItems = settingsListData.map(SettingItem::fromData)
+                val settingItems = settingsListData.asSequence().map(SettingItem::fromData)
                 filterItems(settingItems, filter)
             }
         }

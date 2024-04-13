@@ -9,7 +9,7 @@ import se.kalind.searchanywhere.domain.repo.AppItem
 import se.kalind.searchanywhere.domain.repo.AppsRepository
 import javax.inject.Inject
 
-typealias AppItems = List<WeightedItem<AppItem>>
+typealias AppItems = Sequence<WeightedItem<AppItem>>
 
 class GetAppsUseCase @Inject constructor(appsRepository: AppsRepository) {
 
@@ -18,7 +18,7 @@ class GetAppsUseCase @Inject constructor(appsRepository: AppsRepository) {
     val filteredApps: Flow<WorkResult<AppItems>> =
         appsRepository.availableApps().combine(_filter) { apps, filter ->
             apps.map { appListData ->
-                val appItems = appListData.map(AppItem::fromData)
+                val appItems = appListData.asSequence().map(AppItem::fromData)
                 filterItems(appItems, filter)
             }
         }

@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import se.kalind.searchanywhere.domain.usecases.FilesUseCases
@@ -35,7 +36,8 @@ interface PermissionStatusCallback {
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject lateinit var files: FilesUseCases
+    @Inject
+    lateinit var files: FilesUseCases
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,10 +87,14 @@ class MainActivity : ComponentActivity() {
 
     fun requestFilePermissions(callback: PermissionStatusCallback) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (Environment.isExternalStorageManager()) {
+            if (isFilePermissionsGranted()) {
                 callback.onGranted()
             } else {
-                if (shouldShowRequestPermissionRationale(Manifest.permission.MANAGE_EXTERNAL_STORAGE)) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(
+                        this,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE
+                    )
+                ) {
                     callback.onShowRationale {
                         requestStorageManagerPermission(callback)
                     }
@@ -101,7 +107,10 @@ class MainActivity : ComponentActivity() {
                 callback.onGranted()
             }
 
-            shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) -> {
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) -> {
                 callback.onShowRationale {
                     requestReadWriteFilePermissions(callback)
                 }
