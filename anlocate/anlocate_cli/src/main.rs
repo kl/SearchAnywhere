@@ -24,7 +24,9 @@ enum Commands {
         #[arg(short, long, default_value_t = 1000000)]
         mem_limit: usize,
         #[arg(short, long)]
-        no_compress: bool
+        no_compress: bool,
+        #[arg(short, long)]
+        remove_root: bool,
     },
 }
 
@@ -49,6 +51,7 @@ fn main() {
             scan_root,
             mem_limit,
             no_compress,
+            remove_root
         } => {
             print!("building...");
             build::build_database(
@@ -57,6 +60,7 @@ fn main() {
                 DatabaseOptions {
                     mem_limit,
                     compress: !no_compress,
+                    remove_root,
                     temp_dir: env::temp_dir(),
                 },
             )

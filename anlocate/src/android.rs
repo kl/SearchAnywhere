@@ -21,16 +21,24 @@ static LOG_CLASS: OnceLock<GlobalRef> = OnceLock::new();
 #[allow(non_snake_case)]
 #[no_mangle]
 pub extern "C" fn JNI_OnLoad(vm: JavaVM) -> jint {
-    let Ok(mut env) = vm.get_env() else { return JNI_ERR };
+    let Ok(mut env) = vm.get_env() else {
+        return JNI_ERR;
+    };
 
     // cache classes for performance
-    let Ok(string_class) = class_global_ref(&mut env, "java/lang/String") else { return JNI_ERR };
+    let Ok(string_class) = class_global_ref(&mut env, "java/lang/String") else {
+        return JNI_ERR;
+    };
     let _ = STRING_CLASS.set(string_class);
 
-    let Ok(log_class) = class_global_ref(&mut env, "android/util/Log") else { return JNI_ERR };
+    let Ok(log_class) = class_global_ref(&mut env, "android/util/Log") else {
+        return JNI_ERR;
+    };
     let _ = LOG_CLASS.set(log_class);
 
-    let Ok(entry_point) = env.find_class(ANDROID_ENTRY_POINT_CLASS) else { return JNI_ERR };
+    let Ok(entry_point) = env.find_class(ANDROID_ENTRY_POINT_CLASS) else {
+        return JNI_ERR;
+    };
 
     let ret = env.register_native_methods(
         entry_point,
@@ -62,9 +70,15 @@ pub extern "C" fn native_build_database<'local>(
     scan_root: JString<'local>,
     temp_dir: JString<'local>,
 ) {
-    let Ok(db_file) = get_string(&mut env, &db_file) else { return };
-    let Ok(scan_root) = get_string(&mut env, &scan_root) else { return };
-    let Ok(temp_dir) = get_string(&mut env, &temp_dir) else { return };
+    let Ok(db_file) = get_string(&mut env, &db_file) else {
+        return;
+    };
+    let Ok(scan_root) = get_string(&mut env, &scan_root) else {
+        return;
+    };
+    let Ok(temp_dir) = get_string(&mut env, &temp_dir) else {
+        return;
+    };
 
     logcat_d(&mut env, format!("db: {}", db_file));
     logcat_d(&mut env, format!("scan_root: {}", scan_root));
@@ -73,6 +87,7 @@ pub extern "C" fn native_build_database<'local>(
     let result = panic::catch_unwind(|| {
         let mut options = DatabaseOptions::default();
         options.temp_dir = temp_dir.into();
+        options.remove_root = true;
         build::build_database(db_file, scan_root, options)
     });
     throw_if_err(&mut env, &result);
@@ -89,12 +104,20 @@ pub extern "C" fn native_find_files<'local>(
     let null = JObject::null().into_raw();
 
     let Some(string_class) = STRING_CLASS.get() else {
-        throw(&mut env, "java/lang/IllegalStateException", "class cache was not initialized");
+        throw(
+            &mut env,
+            "java/lang/IllegalStateException",
+            "class cache was not initialized",
+        );
         return null;
     };
     // if the following fails something is seriously wrong so don't attempt to throw an exception
-    let Ok(db_file) = get_string(&mut env, &db_file) else { return null };
-    let Ok(query) = get_string(&mut env, &query) else { return null };
+    let Ok(db_file) = get_string(&mut env, &db_file) else {
+        return null;
+    };
+    let Ok(query) = get_string(&mut env, &query) else {
+        return null;
+    };
 
     // call the lib search function
     let result = panic::catch_unwind(|| {
@@ -112,15 +135,18 @@ pub extern "C" fn native_find_files<'local>(
             files.as_slice()
         };
 
-        let Ok(obj_array) = env
-            .new_object_array(
-                files.len().try_into().unwrap(), // safety: never panics
-                string_class,
-                JObject::null(),
-            ) else { return null };
+        let Ok(obj_array) = env.new_object_array(
+            files.len().try_into().unwrap(), // safety: never panics
+            string_class,
+            JObject::null(),
+        ) else {
+            return null;
+        };
 
         for (i, file) in files.into_iter().enumerate() {
-            let Ok(java_string) = env.new_string(file) else { return null };
+            let Ok(java_string) = env.new_string(file) else {
+                return null;
+            };
             let index: jsize = i.try_into().unwrap(); // safety: never panics
             if env
                 .set_object_array_element(&obj_array, index, java_string)
@@ -188,11 +214,19 @@ fn logcat_d(env: &mut JNIEnv, message: impl Into<JNIString>) {
     }
 
     let Some(log_class) = LOG_CLASS.get() else {
-        throw(env, "java/lang/IllegalStateException", "class cache was not initialized");
+        throw(
+            env,
+            "java/lang/IllegalStateException",
+            "class cache was not initialized",
+        );
         return;
     };
-    let Ok(tag_string) = env.new_string("ANLOCATE_NATIVE") else { return };
-    let Ok(message_string) = env.new_string(message) else { return };
+    let Ok(tag_string) = env.new_string("ANLOCATE_NATIVE") else {
+        return;
+    };
+    let Ok(message_string) = env.new_string(message) else {
+        return;
+    };
 
     let _ = env.call_static_method(
         log_class,

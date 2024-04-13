@@ -7,6 +7,7 @@ name = "anlocate"
 version = "0.1.0"
 dependencies = [
  "jni",
+ "nanorand",
  "tempdir",
  "unicase",
 ]
@@ -84,6 +85,12 @@ name = "memchr"
 version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
+
+[[package]]
+name = "nanorand"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a51313c5820b0b02bd422f4b44776fbf47961755c74ce64afc73bfad10226c3"
 
 [[package]]
 name = "proc-macro2"

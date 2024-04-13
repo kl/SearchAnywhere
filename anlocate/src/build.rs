@@ -1,4 +1,5 @@
 use crate::{compress, util};
+use nanorand::Rng;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, ErrorKind, Write};
 use std::os::unix::ffi::OsStrExt;
@@ -16,6 +17,8 @@ pub struct DatabaseOptions {
     pub mem_limit: usize,
     /// Whether to compress the database or not.
     pub compress: bool,
+    /// If true the scan root directory prefix path will not be included in the database.
+    pub remove_root: bool,
     /// The path to the dir where temporary .part files are written.
     pub temp_dir: PathBuf,
 }
@@ -25,6 +28,7 @@ impl Default for DatabaseOptions {
         DatabaseOptions {
             mem_limit: 2 * 1000 * 1000, // 2 MB
             compress: true,
+            remove_root: false,
             temp_dir: env::temp_dir(),
         }
     }
@@ -72,10 +76,10 @@ fn write_database(
     db_path: PathBuf,
     options: DatabaseOptions,
 ) -> io::Result<()> {
-    let temp_dir = options.temp_dir.join("anlocate");
-    if temp_dir.is_dir() {
-        fs::remove_dir_all(&temp_dir)?;
-    }
+    let temp_dir = options.temp_dir.join(format!(
+        "anlocate-{}",
+        nanorand::tls_rng().generate::<u64>()
+    ));
     fs::create_dir_all(&temp_dir)?;
     let _dropper = RemoveDirOnDrop(&temp_dir);
 
@@ -131,6 +135,9 @@ fn write_database_from_parts(
     part_files: &[PathBuf],
     compress: bool,
 ) -> io::Result<()> {
+    if let Some(parent) = db_file.parent() {
+        fs::create_dir_all(parent)?;
+    }
     let mut database = File::create(db_file)?;
     if part_files.is_empty() {
         return Ok(());
@@ -194,8 +201,20 @@ where
     P: Into<PathBuf>,
     F: Fn(Vec<PathBuf>) -> WalkStatus,
 {
+    #[inline]
+    fn strip_root(path: PathBuf, root: Option<&Path>) -> PathBuf {
+        if let Some(root) = root {
+            path.strip_prefix(root)
+                .expect("root was not prefix")
+                .to_path_buf()
+        } else {
+            path
+        }
+    }
+
     fn walk_dir_internal<F>(
         dir: PathBuf,
+        remove_root: Option<&Path>, // if set the root (prefix path) will not be in the output
         mem_limit: usize,
         on_flush: &F,
         files: &mut Vec<PathBuf>,
@@ -212,17 +231,19 @@ where
         };
         if entries.peek().is_none() {
             // dir is a leaf (empty dir) so add it to the files list
-            files.push(dir);
+            files.push(strip_root(dir, remove_root));
         } else {
             for entry in entries {
                 let entry = entry?;
                 let path = entry.path();
                 if path.is_dir() {
-                    let status = walk_dir_internal(path, mem_limit, on_flush, files, size);
+                    let status =
+                        walk_dir_internal(path, remove_root, mem_limit, on_flush, files, size);
                     if let Err(_) | Ok(WalkStatus::Aborted) = status {
                         return status;
                     }
                 } else {
+                    let path = strip_root(path, remove_root);
                     let elem_size = path.as_os_str().as_bytes().len() + mem::size_of::<PathBuf>();
                     let new_size = *size + elem_size;
                     if new_size >= mem_limit {
@@ -245,7 +266,19 @@ where
         panic!("root is not a directory: {:?}", root);
     }
     let mut files = Vec::new();
-    let status = walk_dir_internal(root, options.mem_limit, &on_flush, &mut files, &mut 0)?;
+    let remove_root = if options.remove_root {
+        Some(root.as_ref())
+    } else {
+        None
+    };
+    let status = walk_dir_internal(
+        root.clone(),
+        remove_root,
+        options.mem_limit,
+        &on_flush,
+        &mut files,
+        &mut 0,
+    )?;
     // flush any remaining file paths
     if status == WalkStatus::Ok && !files.is_empty() {
         on_flush(files);
@@ -274,8 +307,39 @@ mod tests {
             &[20], "rmadillo.c".as_bytes(), &[b'\n'],
             &[15], "tmp/zoo".as_bytes(), &[b'\n'],
             &[11], "x/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/file1.sh".as_bytes(), &[b'\n'],
-            // 253=needs 2 byte to store, 28=LSB, 1=MSB
+            // 253=needs 2 byte to store, 26=LSB, 1=MSB
             &[253, 26, 1], "2.jpg".as_bytes(), &[b'\n'],
+        ]
+            .iter()
+            .fold(Vec::new(), |mut fold, bytes| {
+                for b in bytes.iter() {
+                    fold.push(*b);
+                }
+                fold
+            });
+
+        assert_eq!(content, expected);
+    }
+
+    #[test]
+    fn test_build_database_remove_root() {
+        let tmp_dir = TempDir::new("test_build_database_remove_root").unwrap();
+        let db_path = tmp_dir.path().join("database.anlocate");
+        let mut options = DatabaseOptions::default();
+        options.remove_root = true;
+        build_database(&db_path, "tests/root", options).unwrap();
+        assert!(db_path.is_file());
+        let content = fs::read(db_path).unwrap();
+        println!("{}", String::from_utf8_lossy(&content));
+
+        let expected: Vec<u8> = vec![
+            &[0], "cmd".as_bytes(), &[b'\n'],
+            &[0], "usr/src/aardvark.c".as_bytes(), &[b'\n'],
+            &[9], "rmadillo.c".as_bytes(), &[b'\n'],
+            &[4], "tmp/zoo".as_bytes(), &[b'\n'],
+            &[0], "x/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/has/common/prefix/that/is/longer/than/251/bytes/long/file1.sh".as_bytes(), &[b'\n'],
+            // 253=needs 2 byte to store, 28=LSB, 1=MSB
+            &[253, 15, 1], "2.jpg".as_bytes(), &[b'\n'],
         ]
             .iter()
             .fold(Vec::new(), |mut fold, bytes| {
