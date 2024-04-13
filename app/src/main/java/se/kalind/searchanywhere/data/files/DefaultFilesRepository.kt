@@ -1,6 +1,5 @@
 package se.kalind.searchanywhere.data.files
 
-import android.os.Environment
 import android.util.Log
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -24,24 +23,20 @@ import kotlin.time.measureTimedValue
 class DefaultFilesRepository(
     private val lib: AnlocateLibrary,
     private val fileHistoryDao: FileHistoryDao,
+    private val databaseFilePath: String,
+    private val tempDirPath: String,
+    private val scanDirRootPath: String,
 ) : FilesRepository {
 
     private val _searchResults =
         MutableStateFlow(FileSearchResult(searchQuery = "", files = WorkResult.Loading))
     override val searchResults: Flow<FileSearchResult> = _searchResults
 
-    private val databaseFilePath =
-        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath + "/anlocate.txt"
-    private val externalMainScanRoot: String =
-        Environment.getExternalStorageDirectory().absolutePath
-    private val tempDir =
-        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath + "/anlocate_temp"
-
     override fun buildDatabase(scanRoot: ScanRoot) {
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 val duration = measureTime {
-                    lib.nativeBuildDatabase(databaseFilePath, externalMainScanRoot, tempDir)
+                    lib.nativeBuildDatabase(databaseFilePath, scanDirRootPath, tempDirPath)
                 }
                 Log.i("SearchAnywhere","native build db: ${duration.inWholeMilliseconds} ms")
             } catch (e: Exception) {

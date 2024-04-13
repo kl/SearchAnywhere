@@ -333,14 +333,18 @@ private fun ItemCard(
 fun DropdownItems(item: ItemType, isHistory: Boolean, onItemAction: (ItemAction) -> Unit) {
     if (isHistory) {
         DropdownMenuItem(
-            text = { Text("Delete from history") },
+            text = { Text("Remove from history") },
             onClick = { onItemAction(ItemAction.DeleteFromHistory(item)) })
     }
+    // TODO: there is no reliable way to open a specific folder in a third party file manager.
+    // need to roll our own file explorer for this to work lol
+    /*
     if (item is ItemType.File) {
         DropdownMenuItem(
             text = { Text("Open folder") },
             onClick = { onItemAction(ItemAction.OpenDirectory(item.item)) })
     }
+     */
 }
 
 @Composable

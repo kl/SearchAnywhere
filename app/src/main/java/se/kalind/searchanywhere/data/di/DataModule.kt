@@ -1,6 +1,7 @@
 package se.kalind.searchanywhere.data.di
 
 import android.content.Context
+import android.os.Environment
 import androidx.room.Room
 import dagger.Module
 import dagger.Provides
@@ -38,17 +39,23 @@ object RepositoryModule {
         @ApplicationContext context: Context,
         appHistoryDao: AppHistoryDao,
     ): AppsRepository {
-
         return DefaultAppsRepository(context, appHistoryDao)
     }
 
     @Singleton
     @Provides
     fun provideFilesRepository(
+        @ApplicationContext context: Context,
         anlocateLibrary: AnlocateLibrary,
         fileHistoryDao: FileHistoryDao,
     ): FilesRepository {
-        return DefaultFilesRepository(anlocateLibrary, fileHistoryDao)
+        return DefaultFilesRepository(
+            lib = anlocateLibrary,
+            fileHistoryDao = fileHistoryDao,
+            databaseFilePath = context.filesDir.absolutePath + "/anlocate.bin",
+            tempDirPath = context.filesDir.absolutePath + "/anlocate_temp",
+            scanDirRootPath = Environment.getExternalStorageDirectory().absolutePath,
+        )
     }
 }
 
