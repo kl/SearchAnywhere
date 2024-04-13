@@ -3,6 +3,7 @@ package se.kalind.searchanywhere.ui.screens.search
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.os.Looper
 import android.provider.DocumentsContract
 import android.util.Log
 import androidx.compose.material.icons.Icons
@@ -16,6 +17,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import se.kalind.searchanywhere.domain.ItemType
 import se.kalind.searchanywhere.domain.WorkResult
@@ -120,6 +123,7 @@ class SearchScreenViewModel @Inject constructor(
                 history = histItems
             )
         }
+            .flowOn(Dispatchers.Default)
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
@@ -275,6 +279,7 @@ class SearchScreenViewModel @Inject constructor(
             val ret = _messages.tryEmit(Message("Couldn't open file", file))
             Log.d("SearchAnywhere", "$ret")
         }
+
     }
 
     fun SettingItem.toSearchItem(): SearchItem {
