@@ -29,7 +29,7 @@ class DefaultFilesRepository(
 ) : FilesRepository {
 
     private val _searchResults =
-        MutableStateFlow(FileSearchResult(searchQuery = "", files = WorkResult.Loading))
+        MutableStateFlow(FileSearchResult(searchQuery = emptyList(), files = WorkResult.Loading))
     override val searchResults: Flow<FileSearchResult> = _searchResults
 
     override fun buildDatabase(scanRoot: ScanRoot) {
@@ -55,12 +55,12 @@ class DefaultFilesRepository(
         }
     }
 
-    override fun setSearchQuery(query: String) {
+    override fun setSearchQuery(query: List<String>) {
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 if (File(databaseFilePath).isFile) {
                     val (files, duration) = measureTimedValue {
-                        lib.nativeFindFiles(databaseFilePath, query)
+                        lib.nativeFindFiles(databaseFilePath, query.toTypedArray())
                     }
                     Log.i("SearchAnywhere", "native search: ${duration.inWholeMilliseconds} ms")
                     _searchResults.value = FileSearchResult(query, WorkResult.Success(files))

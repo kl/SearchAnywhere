@@ -17,11 +17,11 @@ class FilesUseCases @Inject constructor(
         filesRepository.searchResults.map { searchResult ->
             searchResult.files.map { files ->
                 val fileItems = files.asSequence().map { FileItem(it) }
-                filterItems(fileItems, searchResult.searchQuery)
+                weighFiles(fileItems, searchResult.searchQuery)
             }
         }
 
-    fun search(query: String) {
+    fun search(query: List<String>) {
         filesRepository.setSearchQuery(query)
     }
 

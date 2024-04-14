@@ -2,16 +2,29 @@ use crate::util;
 use std::io::{self, BufReader, Read};
 use std::string::FromUtf8Error;
 
-pub fn search(reader: &mut BufReader<impl Read>, search: &str) -> Result<Vec<String>, SearchError> {
+pub fn search<T: AsRef<str>>(
+    reader: &mut BufReader<impl Read>,
+    search: &[T],
+) -> Result<Vec<String>, SearchError> {
+
+    // Cache whether the search are pure ascii or not.
+    let search: Vec<(&str, bool)> = search
+        .iter()
+        .map(T::as_ref)
+        .map(|s| (s, s.is_ascii()))
+        .collect();
+
     let mut matches = Vec::<String>::new();
+    if search.is_empty() {
+        return Ok(matches)
+    }
 
     let mut buf = Vec::new();
     util::read_line(reader, &mut buf)?;
     let first = decompress_line(&[], &buf)?;
-    let search_is_ascii = search.is_ascii();
 
-    // prev is stored in this local or as the last element of `result` if it matched the search
-    let mut prev = if is_search_match(&first, search, search_is_ascii) {
+    // Prev is stored in this local or as the last element of `result` if it matched the search.
+    let mut prev = if is_search_match(&first, &search) {
         matches.push(first);
         None
     } else {
@@ -40,20 +53,23 @@ pub fn search(reader: &mut BufReader<impl Read>, search: &str) -> Result<Vec<Str
 
         let curr = decompress_line(prev_bytes, &buf)?;
 
-        if is_search_match(&curr, search, search_is_ascii) {
+        if is_search_match(&curr, &search) {
             matches.push(curr);
             prev = None;
         } else {
             prev = Some(curr);
         }
     }
-
     Ok(matches)
 }
 
-#[inline]
-fn is_search_match(path: &str, search: &str, search_is_ascii: bool) -> bool {
-    util::caseless_contains(path, search, search_is_ascii)
+fn is_search_match(path: &str, search: &[(&str, bool)]) -> bool {
+    for (search, search_is_ascii) in search {
+        if !util::caseless_contains(path, *search, *search_is_ascii) {
+            return false;
+        }
+    }
+    true
 }
 
 fn decompress_line(prev: &[u8], curr: &[u8]) -> Result<String, FromUtf8Error> {
@@ -159,31 +175,39 @@ mod tests {
 
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
         assert_eq!(
-            search(&mut reader, "/a").unwrap(),
+            search(&mut reader, &["/a"]).unwrap(),
             vec!["/usr/src/cmd/aardvark.c", "/usr/src/cmd/armadillo.c",]
         );
 
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
-        assert_eq!(search(&mut reader, "?").unwrap(), vec!["/x/has/com?"]);
+        assert_eq!(
+            search(&mut reader, &["/a", "ARK"]).unwrap(),
+            vec!["/usr/src/cmd/aardvark.c"]
+        );
+
+        let mut reader = BufReader::new(File::open(&file_path).unwrap());
+        assert_eq!(search(&mut reader, &["?"]).unwrap(), vec!["/x/has/com?"]);
 
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
         assert_eq!(
-            search(&mut reader, "sdkjfhljsdhfl").unwrap(),
+            search(&mut reader, &["sdkjfhljsdhfl"]).unwrap(),
             Vec::<String>::new()
         );
 
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
         assert_eq!(
-            search(&mut reader, "longer/than/251/bytes").unwrap().len(),
+            search(&mut reader, &["longer/than/251/bytes"])
+                .unwrap()
+                .len(),
             3
         );
 
         // test reading when common length contains 0xA
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
-        assert_eq!(search(&mut reader, "xax").unwrap().len(), 1);
+        assert_eq!(search(&mut reader, &["xax"]).unwrap().len(), 1);
 
         // test reading when first bye is 0xA
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
-        assert_eq!(search(&mut reader, "?").unwrap().len(), 1);
+        assert_eq!(search(&mut reader, &["?"]).unwrap().len(), 1);
     }
 }

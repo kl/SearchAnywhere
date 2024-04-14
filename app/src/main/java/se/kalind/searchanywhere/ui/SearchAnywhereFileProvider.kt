@@ -1,6 +1,5 @@
 package se.kalind.searchanywhere.ui
 
-import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import se.kalind.searchanywhere.R
 

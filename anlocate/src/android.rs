@@ -1,7 +1,7 @@
 use crate::build;
 use crate::build::DatabaseOptions;
 use crate::search;
-use jni::objects::{GlobalRef, JObject, JString, JValue};
+use jni::objects::{GlobalRef, JObject, JObjectArray, JString, JValue};
 use jni::strings::JNIString;
 use jni::sys::{jint, jobjectArray, jsize, JNI_ERR, JNI_VERSION_1_6};
 use jni::JavaVM;
@@ -50,7 +50,7 @@ pub extern "C" fn JNI_OnLoad(vm: JavaVM) -> jint {
             },
             NativeMethod {
                 name: "nativeFindFiles".into(),
-                sig: "(Ljava/lang/String;Ljava/lang/String;)[Ljava/lang/String;".into(),
+                sig: "(Ljava/lang/String;[Ljava/lang/String;)[Ljava/lang/String;".into(),
                 fn_ptr: native_find_files as *mut c_void,
             },
         ],
@@ -99,7 +99,7 @@ pub extern "C" fn native_find_files<'local>(
     mut env: JNIEnv<'local>,
     _obj: JObject<'local>,
     db_file: JString<'local>,
-    query: JString<'local>,
+    query: JObjectArray<'local>,
 ) -> jobjectArray {
     let null = JObject::null().into_raw();
 
@@ -111,18 +111,29 @@ pub extern "C" fn native_find_files<'local>(
         );
         return null;
     };
+
     // if the following fails something is seriously wrong so don't attempt to throw an exception
     let Ok(db_file) = get_string(&mut env, &db_file) else {
         return null;
     };
-    let Ok(query) = get_string(&mut env, &query) else {
+    let Ok(query_len) = env.get_array_length(&query) else {
         return null;
     };
+    let mut queries: Vec<String> = Vec::new();
+    for i in 0..query_len {
+        let Ok(obj) = env.get_object_array_element(&query, i) else {
+            return null;
+        };
+        let Ok(query_str) = get_string(&mut env, &JString::from(obj)) else {
+            return null;
+        };
+        queries.push(query_str);
+    }
 
     // call the lib search function
     let result = panic::catch_unwind(|| {
         let mut reader = BufReader::new(File::open(db_file).expect("failed to open database file"));
-        search::search(&mut reader, &query)
+        search::search(&mut reader, &queries)
     });
 
     throw_if_err(&mut env, &result);

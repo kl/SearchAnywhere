@@ -13,7 +13,7 @@ typealias SettingItems = Sequence<WeightedItem<SettingItem>>
 
 class GetSettingsUseCase @Inject constructor(settingsRepository: SettingsRepository) {
 
-    private val _filter = MutableStateFlow("")
+    private val _filter: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
 
     val filteredSettings: Flow<WorkResult<SettingItems>> =
         settingsRepository.availableSettings().combine(_filter) { settings, filter ->
@@ -23,7 +23,7 @@ class GetSettingsUseCase @Inject constructor(settingsRepository: SettingsReposit
             }
         }
 
-    fun setFilter(filter: String) {
+    fun setFilter(filter: List<String>) {
         _filter.value = filter
     }
 }

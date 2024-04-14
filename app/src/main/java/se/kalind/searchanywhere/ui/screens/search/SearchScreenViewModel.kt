@@ -4,7 +4,6 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.os.Environment
-import android.os.Looper
 import android.provider.DocumentsContract
 import android.util.Log
 import android.webkit.MimeTypeMap
@@ -152,11 +151,23 @@ class SearchScreenViewModel @Inject constructor(
     }
 
     fun onSearchChanged(filter: String) {
-        getSettings.setFilter(filter)
-        getApps.setFilter(filter)
+        val terms = splitFilter(filter)
+        getSettings.setFilter(terms)
+        getApps.setFilter(terms)
         if (filePermissionsGranted) {
-            files.search(filter)
+            files.search(terms)
         }
+    }
+
+    // split input on &. To escape an &, input && which will be transformed to a single & (without splitting)
+    private fun splitFilter(filter: String): List<String> = if (filter.contains("&")) {
+        filter.split("(?<!&)&(?!&)".toRegex())
+            .filterNot(String::isEmpty)
+            .map { p ->
+                p.replace("&+".toRegex()) { "&".repeat(it.value.length - 1) }
+            }
+    } else {
+        listOf(filter)
     }
 
     fun onSearchFieldFocused(context: Context) {

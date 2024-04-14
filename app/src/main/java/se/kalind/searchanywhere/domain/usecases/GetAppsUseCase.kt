@@ -13,7 +13,7 @@ typealias AppItems = Sequence<WeightedItem<AppItem>>
 
 class GetAppsUseCase @Inject constructor(appsRepository: AppsRepository) {
 
-    private val _filter = MutableStateFlow("")
+    private val _filter: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
 
     val filteredApps: Flow<WorkResult<AppItems>> =
         appsRepository.availableApps().combine(_filter) { apps, filter ->
@@ -23,7 +23,7 @@ class GetAppsUseCase @Inject constructor(appsRepository: AppsRepository) {
             }
         }
 
-    fun setFilter(filter: String) {
+    fun setFilter(filter: List<String>) {
         _filter.value = filter
     }
 }

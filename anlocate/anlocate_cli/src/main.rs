@@ -35,7 +35,7 @@ fn main() {
     match cli.command {
         Commands::Search { db_path, text } => {
             let mut db = BufReader::new(File::open(db_path).expect("could not open database file"));
-            match search::search(&mut db, &text) {
+            match search::search(&mut db, &[text]) {
                 Ok(results) => {
                    for hit in results {
                        println!("{hit}");

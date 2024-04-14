@@ -13,7 +13,7 @@ interface FilesRepository {
 
     fun history(): Flow<List<Pair<FileItem, UnixTimeMs>>>
 
-    fun setSearchQuery(query: String)
+    fun setSearchQuery(query: List<String>)
     fun buildDatabase(scanRoot: ScanRoot)
     fun buildDatabaseIfNotExists(scanRoot: ScanRoot)
     fun saveToHistory(item: FileItem)
@@ -32,6 +32,6 @@ data class FileItem(override val displayName: String) : DisplayName, ToItemType 
 }
 
 data class FileSearchResult(
-    val searchQuery: String,
+    val searchQuery: List<String>,
     val files: WorkResult<Array<String>>
 )
