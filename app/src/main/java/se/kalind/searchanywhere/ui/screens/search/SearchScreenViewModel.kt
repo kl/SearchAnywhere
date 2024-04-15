@@ -56,7 +56,6 @@ data class SearchItem(
     val displayName: String,
     val key: String,
 )
-
 data class UiState(
     val items: ImmutableList<SearchItem>,
     val history: Loading<ImmutableList<SearchItem>>,
@@ -112,15 +111,17 @@ class SearchScreenViewModel @Inject constructor(
                 WeightedItem(it.weight, it.item.toSearchItem())
             }
 
-            val items = (appItems + settingItems + fileItems)
-                .sortedByDescending { it.weight }
-                .map { it.item }
-                .toImmutableList()
+            val allItems: MutableList<WeightedItem<SearchItem>> = mutableListOf()
+            allItems.addAll(settingItems)
+            allItems.addAll(appItems)
+            allItems.addAll(fileItems)
+            allItems.sortByDescending { it.weight }
+            val allImmutable = allItems.asSequence().map { it.item }.toImmutableList()
 
-            val histItems = Loading(history.map { it.toSearchItem() }.toImmutableList())
+            val histItems = Loading(history.asSequence().map { it.toSearchItem() }.toImmutableList())
 
             UiState(
-                items = items,
+                items = allImmutable,
                 history = histItems
             )
         }

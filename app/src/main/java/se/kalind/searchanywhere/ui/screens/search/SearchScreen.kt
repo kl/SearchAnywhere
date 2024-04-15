@@ -263,10 +263,10 @@ private fun ItemList(
             items(
                 items = items,
                 key = { it.key },
-            ) { setting ->
+            ) { item ->
                 ItemCard(
                     modifier = Modifier.animateItemPlacement(),
-                    item = setting,
+                    item = item,
                     onItemAction = onItemAction,
                     isHistory = isHistory,
                     listState = listState,
