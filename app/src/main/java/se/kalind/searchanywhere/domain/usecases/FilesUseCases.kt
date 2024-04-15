@@ -21,8 +21,8 @@ class FilesUseCases @Inject constructor(
             }
         }
 
-    fun search(query: List<String>) {
-        filesRepository.setSearchQuery(query)
+    fun search(query: String) {
+        filesRepository.setSearchQuery(splitFilter(query))
     }
 
     fun rebuildDatabase() {

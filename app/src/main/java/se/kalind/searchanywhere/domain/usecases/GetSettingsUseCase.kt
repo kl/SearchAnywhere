@@ -23,7 +23,7 @@ class GetSettingsUseCase @Inject constructor(settingsRepository: SettingsReposit
             }
         }
 
-    fun setFilter(filter: List<String>) {
-        _filter.value = filter
+    fun setFilter(filter: String) {
+        _filter.value = splitFilter(filter)
     }
 }

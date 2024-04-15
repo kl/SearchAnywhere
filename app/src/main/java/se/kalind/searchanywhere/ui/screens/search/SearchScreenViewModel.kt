@@ -152,23 +152,11 @@ class SearchScreenViewModel @Inject constructor(
     }
 
     fun onSearchChanged(filter: String) {
-        val terms = splitFilter(filter)
-        getSettings.setFilter(terms)
-        getApps.setFilter(terms)
+        getSettings.setFilter(filter)
+        getApps.setFilter(filter)
         if (filePermissionsGranted) {
-            files.search(terms)
+            files.search(filter)
         }
-    }
-
-    // split input on &. To escape an &, input && which will be transformed to a single & (without splitting)
-    private fun splitFilter(filter: String): List<String> = if (filter.contains("&")) {
-        filter.split("(?<!&)&(?!&)".toRegex())
-            .filterNot(String::isEmpty)
-            .map { p ->
-                p.replace("&+".toRegex()) { "&".repeat(it.value.length - 1) }
-            }
-    } else {
-        listOf(filter)
     }
 
     fun onSearchFieldFocused(context: Context) {

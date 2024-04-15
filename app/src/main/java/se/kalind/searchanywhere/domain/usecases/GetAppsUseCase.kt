@@ -23,7 +23,7 @@ class GetAppsUseCase @Inject constructor(appsRepository: AppsRepository) {
             }
         }
 
-    fun setFilter(filter: List<String>) {
-        _filter.value = filter
+    fun setFilter(filter: String) {
+        _filter.value = splitFilter(filter)
     }
 }

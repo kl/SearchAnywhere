@@ -1,10 +1,10 @@
 package se.kalind.searchanywhere.domain.usecases
 
-import android.util.Log
 import se.kalind.searchanywhere.domain.repo.FileItem
 import java.util.regex.Pattern
 
 private val WHITESPACE = Pattern.compile("\\s+")
+private val DELIMITER = Pattern.compile("""(?<!\\)&""")
 
 fun <T : DisplayName> filterItems(items: Sequence<T>, queries: List<String>): Sequence<WeightedItem<T>> {
     return if (queries.isEmpty() || queries.first().isEmpty()) {
@@ -44,4 +44,13 @@ data class WeightedItem<T>(val weight: Int, val item: T)
 
 interface DisplayName {
     val displayName: String
+}
+
+// Split input on '&'. Escape '&' with '\&'.
+fun splitFilter(filter: String): List<String> = if (filter.contains("&")) {
+    filter.split(DELIMITER)
+        .filterNot(String::isEmpty)
+        .map { it.replace("\\&", "&") }
+} else {
+    listOf(filter)
 }
