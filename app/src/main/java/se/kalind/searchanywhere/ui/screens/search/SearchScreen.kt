@@ -34,6 +34,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,11 +77,10 @@ fun SearchScreen(
             0
         )
     )
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     if (message.message.isNotEmpty()) {
-        scope.launch {
+        LaunchedEffect(snackbarHostState) {
             snackbarHostState.showSnackbar(message.message)
         }
     }
@@ -122,6 +122,7 @@ fun SearchScreen(
     ) { padding ->
         val context = LocalContext.current
         SearchScreenContent(
+            modifier = Modifier.padding(padding),
             items = state.items,
             history = state.history,
             searchText = searchText.value,
@@ -137,6 +138,7 @@ fun SearchScreen(
 
 @Composable
 internal fun SearchScreenContent(
+    modifier: Modifier = Modifier,
     items: ImmutableList<SearchItem>,
     history: Loading<ImmutableList<SearchItem>>,
     searchText: String,
@@ -145,7 +147,7 @@ internal fun SearchScreenContent(
     onSearchFieldFocused: () -> Unit,
 ) {
 
-    Column {
+    Column(modifier = modifier) {
         SearchTextField(
             text = searchText,
             onSearchChanged = onSearchChanged,
