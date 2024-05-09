@@ -14,6 +14,7 @@ use std::{mem, thread};
 pub struct DatabaseOptions {
     /// The file system walker will store file paths in memory up until `mem_limit` bytes of
     /// memory is used. After this limit is exceeded, the path buffer is flushed to a part file.
+    /// This is used so that we can limit the amount of memory used when building the DB on Android.
     pub mem_limit: usize,
     /// Whether to compress the database or not.
     pub compress: bool,
