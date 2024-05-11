@@ -1,6 +1,5 @@
 package se.kalind.searchanywhere.presentation.search
 
-import android.content.Context
 import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileOpen
@@ -12,7 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,20 +23,22 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import se.kalind.searchanywhere.domain.ItemType
 import se.kalind.searchanywhere.domain.WorkResult
+import se.kalind.searchanywhere.domain.messageOrNull
 import se.kalind.searchanywhere.domain.repo.AppItem
 import se.kalind.searchanywhere.domain.repo.FileItem
 import se.kalind.searchanywhere.domain.repo.SettingItem
-import se.kalind.searchanywhere.domain.usecases.FilesUseCase
 import se.kalind.searchanywhere.domain.usecases.AppsUseCase
-import se.kalind.searchanywhere.domain.usecases.SettingsUseCase
+import se.kalind.searchanywhere.domain.usecases.FilesUseCase
 import se.kalind.searchanywhere.domain.usecases.HistoryUseCase
 import se.kalind.searchanywhere.domain.usecases.OpenItemUseCase
+import se.kalind.searchanywhere.domain.usecases.SettingsUseCase
 import se.kalind.searchanywhere.domain.usecases.WeightedItem
 import se.kalind.searchanywhere.presentation.Loading
+import se.kalind.searchanywhere.presentation.MainActivityReference
 import se.kalind.searchanywhere.presentation.PermissionStatusCallback
 import se.kalind.searchanywhere.presentation.asDrawable
-import se.kalind.searchanywhere.presentation.findMainActivity
 import javax.inject.Inject
+import javax.inject.Named
 
 sealed class IconType {
     data class Vector(val icon: ImageVector) : IconType()
@@ -69,10 +70,11 @@ class SearchScreenViewModel @Inject constructor(
     private val ucFiles: FilesUseCase,
     private val ucHistory: HistoryUseCase,
     private val ucOpen: OpenItemUseCase,
-//    private val ucPermissions: PermissionsUseCase,
+    private val mainActivityRef: MainActivityReference,
+    @Named("default") private val defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
-    // Keeps track of wheter we are allowed to read/write files on external storage.
+    // Keeps track of whether we are allowed to read/write files on external storage.
     // If this is false we do not try to search the file database.
     private var filePermissionsGranted = false
 
@@ -120,7 +122,7 @@ class SearchScreenViewModel @Inject constructor(
                 history = histItems
             )
         }
-            .flowOn(Dispatchers.Default)
+            .flowOn(defaultDispatcher)
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
@@ -154,9 +156,8 @@ class SearchScreenViewModel @Inject constructor(
         }
     }
 
-    fun onSearchFieldFocused(context: Context) {
-        // context passed from Compose so we should always be able to get the MainActivity
-        val activity = context.findMainActivity()!!
+    fun onSearchFieldFocused() {
+        val activity = mainActivityRef.mainActivity ?: return
 
         activity.requestFilePermissions(object : PermissionStatusCallback {
             override fun onGranted() {
@@ -182,10 +183,13 @@ class SearchScreenViewModel @Inject constructor(
         })
     }
 
-    fun onItemAction(context: Context, action: ItemAction) {
+    fun onItemAction(action: ItemAction) {
         when (action) {
             is ItemAction.Open -> {
-                ucOpen.openItem(action.item)
+                val result = ucOpen.openItem(action.item)
+                result.messageOrNull()?.let {
+                    _messages.tryEmit(Message(it, action.item))
+                }
             }
 
             is ItemAction.DeleteFromHistory -> {
@@ -197,7 +201,7 @@ class SearchScreenViewModel @Inject constructor(
     fun SettingItem.toSearchItem(): SearchItem {
         return SearchItem(
             item = ItemType.Setting(this),
-            icon = se.kalind.searchanywhere.presentation.search.IconType.Vector(Icons.Default.Settings),
+            icon = IconType.Vector(Icons.Default.Settings),
             displayName = this.displayName,
             key = this.id,
         )
@@ -206,7 +210,7 @@ class SearchScreenViewModel @Inject constructor(
     fun AppItem.toSearchItem(): SearchItem {
         return SearchItem(
             item = ItemType.App(this),
-            icon = se.kalind.searchanywhere.presentation.search.IconType.Drawable(this.icon.asDrawable()),
+            icon = IconType.Drawable(this.icon.asDrawable()),
             displayName = this.displayName,
             key = this.id,
         )
@@ -214,8 +218,8 @@ class SearchScreenViewModel @Inject constructor(
 
     fun FileItem.toSearchItem(): SearchItem {
         return SearchItem(
-            item = se.kalind.searchanywhere.domain.ItemType.File(this),
-            icon = se.kalind.searchanywhere.presentation.search.IconType.Vector(Icons.Default.FileOpen),
+            item = ItemType.File(this),
+            icon = IconType.Vector(Icons.Default.FileOpen),
             displayName = this.displayName,
             key = this.displayName,
         )

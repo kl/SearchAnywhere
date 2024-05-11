@@ -4,9 +4,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ResolveInfo
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -19,10 +18,11 @@ import se.kalind.searchanywhere.domain.repo.AppItem
 import se.kalind.searchanywhere.domain.repo.AppItemData
 import se.kalind.searchanywhere.domain.repo.AppsRepository
 
-@OptIn(DelicateCoroutinesApi::class)
 class DefaultAppsRepository(
     private val context: Context,
     private val appHistoryDao: AppHistoryDao,
+    private val ioDispatcher: CoroutineDispatcher,
+    private val appScope: CoroutineScope,
 ) : AppsRepository {
 
     override fun availableApps(): Flow<WorkResult<List<AppItemData>>> {
@@ -56,17 +56,17 @@ class DefaultAppsRepository(
                 Pair(item, entity.updateTime)
             }
         }
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
     }
 
     override fun saveToHistory(item: AppItem) {
-        GlobalScope.launch(Dispatchers.IO) {
+        appScope.launch(ioDispatcher) {
             appHistoryDao.saveToHistory(item.toEntity())
         }
     }
 
     override fun deleteFromHistory(item: AppItem) {
-        GlobalScope.launch(Dispatchers.IO) {
+        appScope.launch(ioDispatcher) {
             appHistoryDao.deleteFromHistory(item.toEntity())
         }
     }

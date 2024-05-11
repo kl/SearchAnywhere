@@ -32,6 +32,7 @@ kotlinxCollectionsImmutable = "0.3.7"
 ksp = "1.9.23-1.0.19"
 lazycolumnscrollbar = "1.10.0"
 materialIconsExtended = "1.6.7"
+mockitoKotlin = "5.3.1"
 reportGenerator = "1.2.0"
 kotlinGradlePlugin = "1.9.23"
 appcompat = "1.6.1"
@@ -87,6 +88,7 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 lazyColumnScrollbar = { module = "com.github.nanihadesuka:LazyColumnScrollbar", version.ref = "lazycolumnscrollbar" }
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
+mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlin" }
 ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }

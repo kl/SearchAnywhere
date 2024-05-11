@@ -8,6 +8,8 @@ import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import se.kalind.searchanywhere.domain.ItemType
+import se.kalind.searchanywhere.domain.err
+import se.kalind.searchanywhere.domain.ok
 import se.kalind.searchanywhere.domain.repo.FileItem
 import se.kalind.searchanywhere.domain.usecases.HistoryUseCase
 import se.kalind.searchanywhere.domain.usecases.ItemOpener
@@ -19,9 +21,9 @@ class DefaultItemOpener(
     private val mainActivityRef: MainActivityReference,
     private val history: HistoryUseCase,
 ): ItemOpener {
-    override fun openItem(item: ItemType) {
+    override fun openItem(item: ItemType): Result<Unit> {
         // We should always have a current activity here
-        val currentActivity = mainActivityRef.mainActivity ?: return
+        val currentActivity = mainActivityRef.mainActivity ?: error("MainActivity not found")
 
         when (item) {
             is ItemType.App -> {
@@ -34,13 +36,11 @@ class DefaultItemOpener(
                         history.saveToHistory(item)
                     } else {
                         Log.d("SearchAnywhere", "app unavailable")
-//                        val ret = _messages.tryEmit(Message("Could not start app", app))
-//                        Log.d("SearchAnywhere", "$ret")
+                        return Result.err("Could not start app")
                     }
                 } catch (e: ActivityNotFoundException) {
                     Log.d("SearchAnywhere", "app unavailable")
-//                    val ret = _messages.tryEmit(Message("Could not start app", app))
-//                    Log.d("SearchAnywhere", "$ret")
+                    return Result.err("Could not start app")
                 }
             }
 
@@ -51,19 +51,20 @@ class DefaultItemOpener(
                     history.saveToHistory(item)
                 } catch (e: ActivityNotFoundException) {
                     Log.d("SearchAnywhere", "setting unavailable")
-//                    val ret = _messages.tryEmit(Message("Setting unavailable", item))
-//                    Log.d("SearchAnywhere", "$ret")
+                    return Result.err("Setting unavailable")
                 }
             }
 
             is ItemType.File -> {
                 history.saveToHistory(item)
-                openFile(currentActivity, item.item)
+                return openFile(currentActivity, item.item)
             }
         }
+
+        return Result.ok()
     }
 
-    private fun openFile(context: Context, fileItem: FileItem) {
+    private fun openFile(context: Context, fileItem: FileItem): Result<Unit> {
         val file =
             Environment.getExternalStorageDirectory().absolutePath + "/${fileItem.displayName}"
 
@@ -82,11 +83,9 @@ class DefaultItemOpener(
         try {
             context.startActivity(intent)
         } catch (e: ActivityNotFoundException) {
-            // Define what your app should do if no activity can handle the intent.
             Log.d("SearchAnywhere", "failed to open file")
-//            val ret = _messages.tryEmit(Message("Couldn't open file", file))
-//            Log.d("SearchAnywhere", "$ret")
+            return Result.err("Failed to open file")
         }
-
+        return Result.ok()
     }
 }

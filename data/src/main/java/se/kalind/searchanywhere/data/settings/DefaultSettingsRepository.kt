@@ -1,9 +1,8 @@
 package se.kalind.searchanywhere.data.settings
 
 import android.provider.Settings
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -16,9 +15,10 @@ import se.kalind.searchanywhere.domain.repo.SettingItemData
 import se.kalind.searchanywhere.domain.repo.SettingsRepository
 import java.lang.reflect.Field
 
-@OptIn(DelicateCoroutinesApi::class)
 class DefaultSettingsRepository(
     private val settingHistoryDao: SettingHistoryDao,
+    private val ioDispatcher: CoroutineDispatcher,
+    private val appScope: CoroutineScope,
 ) : SettingsRepository {
 
     override fun availableSettings(): Flow<WorkResult<List<SettingItemData>>> {
@@ -43,17 +43,17 @@ class DefaultSettingsRepository(
                 Pair(item, hist.updateTime)
             }
         }
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
     }
 
     override fun saveToHistory(item: SettingItem) {
-        GlobalScope.launch(Dispatchers.IO) {
+        appScope.launch(ioDispatcher) {
             settingHistoryDao.saveToHistory(item.toEntity())
         }
     }
 
     override fun deleteFromHistory(item: SettingItem) {
-        GlobalScope.launch(Dispatchers.IO) {
+        appScope.launch(ioDispatcher) {
             settingHistoryDao.deleteFromHistory(item.toEntity())
         }
     }

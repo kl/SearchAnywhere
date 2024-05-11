@@ -44,7 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -117,18 +116,17 @@ fun SearchScreen(
         },
         modifier = Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp)
     ) { padding ->
-        val context = LocalContext.current
         SearchScreenContent(
             modifier = Modifier.padding(padding),
             items = state.items,
             history = state.history,
             searchText = searchText.value,
-            onItemAction = { item -> viewModel.onItemAction(context, item) },
+            onItemAction = { item -> viewModel.onItemAction(item) },
             onSearchChanged = { filter ->
                 searchText.value = filter
                 viewModel.onSearchChanged(searchText.value)
             },
-            onSearchFieldFocused = { viewModel.onSearchFieldFocused(context) },
+            onSearchFieldFocused = { viewModel.onSearchFieldFocused() },
         )
     }
 }

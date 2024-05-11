@@ -1,9 +1,8 @@
 package se.kalind.searchanywhere.data.files
 
 import android.util.Log
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOn
@@ -12,20 +11,21 @@ import kotlinx.coroutines.launch
 import se.kalind.searchanywhere.domain.UnixTimeMs
 import se.kalind.searchanywhere.domain.WorkResult
 import se.kalind.searchanywhere.domain.repo.FileItem
+import se.kalind.searchanywhere.domain.repo.FileSearchResult
 import se.kalind.searchanywhere.domain.repo.FilesRepository
 import se.kalind.searchanywhere.domain.repo.ScanRoot
-import se.kalind.searchanywhere.domain.repo.FileSearchResult
 import java.io.File
 import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
 
-@OptIn(DelicateCoroutinesApi::class)
 class DefaultFilesRepository(
     private val lib: AnlocateLibrary,
     private val fileHistoryDao: FileHistoryDao,
     private val databaseFilePath: String,
     private val tempDirPath: String,
     private val scanDirRootPath: String,
+    private val ioDispatcher: CoroutineDispatcher,
+    private val appScope: CoroutineScope,
 ) : FilesRepository {
 
     private val _searchResults =
@@ -33,12 +33,12 @@ class DefaultFilesRepository(
     override val searchResults: Flow<FileSearchResult> = _searchResults
 
     override fun buildDatabase(scanRoot: ScanRoot) {
-        GlobalScope.launch(Dispatchers.IO) {
+        appScope.launch(ioDispatcher) {
             try {
                 val duration = measureTime {
                     lib.nativeBuildDatabase(databaseFilePath, scanDirRootPath, tempDirPath)
                 }
-                Log.i("SearchAnywhere","native build db: ${duration.inWholeMilliseconds} ms")
+                Log.i("SearchAnywhere", "native build db: ${duration.inWholeMilliseconds} ms")
             } catch (e: Exception) {
                 if (e.message?.contains("permission denied", ignoreCase = true) == true) {
                     Log.e("SearchAnywhere", "buildDatabase: permission denied")
@@ -56,7 +56,7 @@ class DefaultFilesRepository(
     }
 
     override fun setSearchQuery(query: List<String>) {
-        GlobalScope.launch(Dispatchers.IO) {
+        appScope.launch(ioDispatcher) {
             try {
                 if (File(databaseFilePath).isFile) {
                     val (files, duration) = measureTimedValue {
@@ -83,16 +83,16 @@ class DefaultFilesRepository(
                 Pair(item, hist.updateTime)
             }
         }
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override fun saveToHistory(item: FileItem) {
-        GlobalScope.launch(Dispatchers.IO) {
+        appScope.launch(ioDispatcher) {
             fileHistoryDao.saveToHistory(item.toEntity())
         }
     }
 
     override fun deleteFromHistory(item: FileItem) {
-        GlobalScope.launch(Dispatchers.IO) {
+        appScope.launch(ioDispatcher) {
             fileHistoryDao.deleteFromHistory(item.toEntity())
         }
     }

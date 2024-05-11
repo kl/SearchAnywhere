@@ -96,9 +96,10 @@ dependencies {
     // Immutable collections
     implementation(libs.kotlinx.collections.immutable)
 
-    // Local tests: jUnit, coroutines, Android runner
+    // Local tests: jUnit, coroutines, Android runner, mockito
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockito.kotlin)
 
     // Instrumented tests: jUnit rules and runners
     androidTestImplementation(libs.androidx.test.core)

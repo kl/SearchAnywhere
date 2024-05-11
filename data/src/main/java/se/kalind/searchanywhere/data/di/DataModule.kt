@@ -8,6 +8,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import se.kalind.searchanywhere.data.SearchAnywhereDatabase
 import se.kalind.searchanywhere.data.apps.AppHistoryDao
 import se.kalind.searchanywhere.data.apps.DefaultAppsRepository
@@ -19,6 +21,7 @@ import se.kalind.searchanywhere.data.settings.SettingHistoryDao
 import se.kalind.searchanywhere.domain.repo.AppsRepository
 import se.kalind.searchanywhere.domain.repo.FilesRepository
 import se.kalind.searchanywhere.domain.repo.SettingsRepository
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -29,8 +32,10 @@ object RepositoryModule {
     @Provides
     fun provideSettingsRepository(
         settingHistoryDao: SettingHistoryDao,
+        @Named("io") ioDispatcher: CoroutineDispatcher,
+        appScope: CoroutineScope,
     ): SettingsRepository {
-        return DefaultSettingsRepository(settingHistoryDao)
+        return DefaultSettingsRepository(settingHistoryDao, ioDispatcher, appScope)
     }
 
     @Singleton
@@ -38,8 +43,10 @@ object RepositoryModule {
     fun provideAppsRepository(
         @ApplicationContext context: Context,
         appHistoryDao: AppHistoryDao,
+        @Named("io") ioDispatcher: CoroutineDispatcher,
+        appScope: CoroutineScope,
     ): AppsRepository {
-        return DefaultAppsRepository(context, appHistoryDao)
+        return DefaultAppsRepository(context, appHistoryDao, ioDispatcher, appScope)
     }
 
     @Singleton
@@ -48,6 +55,8 @@ object RepositoryModule {
         @ApplicationContext context: Context,
         anlocateLibrary: AnlocateLibrary,
         fileHistoryDao: FileHistoryDao,
+        @Named("io") ioDispatcher: CoroutineDispatcher,
+        appScope: CoroutineScope,
     ): FilesRepository {
         return DefaultFilesRepository(
             lib = anlocateLibrary,
@@ -55,6 +64,8 @@ object RepositoryModule {
             databaseFilePath = context.filesDir.absolutePath + "/anlocate.bin",
             tempDirPath = context.filesDir.absolutePath + "/anlocate_temp",
             scanDirRootPath = Environment.getExternalStorageDirectory().absolutePath,
+            ioDispatcher,
+            appScope
         )
     }
 }

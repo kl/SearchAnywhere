@@ -4,8 +4,12 @@ import android.app.Activity
 import android.app.Application
 import android.os.Bundle
 import android.util.Log
-import se.kalind.searchanywhere.presentation.MainActivity
 
+/**
+ * Some APIs require an Activity context and not just the application context, for example
+ * Context#startActivity. This class exists as a reference to the MainActivity class, and can be
+ * injected into classes that need to access the MainActivity.
+ */
 class MainActivityReference: Application.ActivityLifecycleCallbacks {
 
     var mainActivity: MainActivity? = null

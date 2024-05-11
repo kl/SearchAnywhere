@@ -2,8 +2,6 @@ package se.kalind.searchanywhere.presentation
 
 import android.Manifest
 import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -168,13 +166,4 @@ class MainActivity : ComponentActivity() {
         }
         return true
     }
-}
-
-fun Context.findMainActivity(): MainActivity? {
-    var context = this
-    while (context is ContextWrapper) {
-        if (context is MainActivity) return context
-        context = context.baseContext
-    }
-    return null
 }
