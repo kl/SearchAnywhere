@@ -114,7 +114,7 @@ fun SearchScreen(
                 hostState = snackbarHostState,
             )
         },
-        modifier = Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp)
+        modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp)
     ) { padding ->
         SearchScreenContent(
             modifier = Modifier.padding(padding),
@@ -295,7 +295,7 @@ private fun ItemCard(
 
     LongPressCard(
         modifier = modifier
-            .padding(vertical = 4.dp, horizontal = 4.dp)
+            .padding(vertical = 4.dp)
             .clip(CardDefaults.shape)
             .onSizeChanged {
                 itemHeight = with(density) { it.height.toDp() }
