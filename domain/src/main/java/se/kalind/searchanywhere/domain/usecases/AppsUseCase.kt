@@ -7,9 +7,11 @@ import se.kalind.searchanywhere.domain.WorkResult
 import se.kalind.searchanywhere.domain.repo.AppItem
 import se.kalind.searchanywhere.domain.repo.AppsRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
 typealias AppItems = Sequence<WeightedItem<AppItem>>
 
+@Singleton
 class AppsUseCase @Inject constructor(appsRepository: AppsRepository) {
 
     private val _filter: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())

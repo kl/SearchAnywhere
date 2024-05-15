@@ -10,7 +10,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
-import se.kalind.searchanywhere.presentation.search.SearchTextField
 
 class SearchTextFieldTest {
     @get:Rule

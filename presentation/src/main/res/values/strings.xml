@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="storage_permissions_reson_header">Why this app requests external storage permissions</string>
+    <string name="storage_permission_text">Granting storage read/write permissions lets you search for files on the external storage. The write permission is needed to create the file cache database which enables fast file searches. If you do not grant this permission the app will not find files but will still find Apps and Settings.</string>
+    <string name="no_history_available">No History Available\nTry Doing A Search</string>
+    <string name="search_field_label">Search Anywhere</string>
+</resources>

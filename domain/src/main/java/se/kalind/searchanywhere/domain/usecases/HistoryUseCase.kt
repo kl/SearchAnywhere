@@ -7,7 +7,9 @@ import se.kalind.searchanywhere.domain.repo.AppsRepository
 import se.kalind.searchanywhere.domain.repo.FilesRepository
 import se.kalind.searchanywhere.domain.repo.SettingsRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class HistoryUseCase @Inject constructor(
     private val appRepository: AppsRepository,
     private val settingsRepository: SettingsRepository,

@@ -96,18 +96,14 @@ fun AppTheme(
         darkTheme -> DarkColors
         else -> LightColors
     }
-    // Add primary status bar color from chosen color scheme.
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat
-                .getInsetsController(window, view)
-                .isAppearanceLightStatusBars = darkTheme
+            window.navigationBarColor = colorScheme.surfaceVariant.toArgb()
         }
     }
-
 
     MaterialTheme(
         colorScheme = colorScheme,

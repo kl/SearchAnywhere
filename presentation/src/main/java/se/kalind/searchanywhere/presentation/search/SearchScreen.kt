@@ -3,9 +3,8 @@ package se.kalind.searchanywhere.presentation.search
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,18 +16,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,11 +35,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -59,13 +50,18 @@ import my.nanihadesuka.compose.LazyColumnScrollbar
 import my.nanihadesuka.compose.ScrollbarSelectionMode
 import se.kalind.searchanywhere.domain.ItemType
 import se.kalind.searchanywhere.presentation.Loading
+import se.kalind.searchanywhere.presentation.R
+import se.kalind.searchanywhere.presentation.appbar.AppBottomBarViewModel
 import se.kalind.searchanywhere.presentation.components.LongPressCard
 import se.kalind.searchanywhere.presentation.theme.alegreyaFamily
 
 @Composable
 fun SearchScreen(
     modifier: Modifier = Modifier,
-    viewModel: SearchScreenViewModel = hiltViewModel()
+    viewModel: SearchScreenViewModel,
+    searchBarVm: AppBottomBarViewModel,
+    snackbarHostState: SnackbarHostState,
+    insetsPadding: PaddingValues,
 ) {
     val message by viewModel.messages.collectAsStateWithLifecycle(
         initialValue = Message(
@@ -73,7 +69,6 @@ fun SearchScreen(
             0
         )
     )
-    val snackbarHostState = remember { SnackbarHostState() }
 
     if (message.message.isNotEmpty()) {
         LaunchedEffect(snackbarHostState) {
@@ -81,20 +76,14 @@ fun SearchScreen(
         }
     }
 
-    val showPermissionRationale by viewModel.showPermissionRationale.collectAsStateWithLifecycle()
+    val showPermissionRationale by searchBarVm.showPermissionRationale.collectAsStateWithLifecycle()
 
     if (showPermissionRationale != null) {
         AlertDialog(
             onDismissRequest = { showPermissionRationale?.invoke() },
-            title = { Text("Why this app requests external storage permissions") },
+            title = { Text(stringResource(R.string.storage_permissions_reson_header)) },
             text = {
-                Text(
-                    "Granting storage read/write permissions lets you search for files " +
-                            "on the external storage. The write permission is needed to create " +
-                            "the file cache database which enables fast file searches. " +
-                            "If you do not grant this permission the app will not find files but " +
-                            "will still find Apps and Settings."
-                )
+                Text(stringResource(R.string.storage_permission_text))
             },
             confirmButton = {
                 TextButton(onClick = { showPermissionRationale?.invoke() }) {
@@ -105,55 +94,36 @@ fun SearchScreen(
     }
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentSearch by searchBarVm.currentSearchText.collectAsStateWithLifecycle()
 
-    val searchText = rememberSaveable { mutableStateOf("") }
-
-    Scaffold(
-        snackbarHost = {
-            SnackbarHost(
-                hostState = snackbarHostState,
-            )
-        },
-        modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp)
-    ) { padding ->
-        SearchScreenContent(
-            modifier = Modifier.padding(padding),
-            items = state.items,
-            history = state.history,
-            searchText = searchText.value,
-            onItemAction = { item -> viewModel.onItemAction(item) },
-            onSearchChanged = { filter ->
-                searchText.value = filter
-                viewModel.onSearchChanged(searchText.value)
-            },
-            onSearchFieldFocused = { viewModel.onSearchFieldFocused() },
-        )
-    }
+    SearchScreenContent(
+        modifier = modifier.padding(start = 16.dp, end = 16.dp),
+        insetsPadding = insetsPadding,
+        items = state.items,
+        history = state.history,
+        searchText = currentSearch,
+        onItemAction = { item -> viewModel.onItemAction(item) },
+    )
 }
 
 @Composable
 internal fun SearchScreenContent(
     modifier: Modifier = Modifier,
+    insetsPadding: PaddingValues,
     items: ImmutableList<SearchItem>,
     history: Loading<ImmutableList<SearchItem>>,
     searchText: String,
     onItemAction: (ItemAction) -> Unit,
-    onSearchChanged: (String) -> Unit,
-    onSearchFieldFocused: () -> Unit,
 ) {
 
-    Column(modifier = modifier) {
-        SearchTextField(
-            text = searchText,
-            onSearchChanged = onSearchChanged,
-            onReceivedFocus = onSearchFieldFocused,
-        )
+    Box(modifier = modifier) {
 
-        if (searchText.isEmpty() && items.isEmpty()) {
+        if (searchText.isEmpty()) {
             val histItems = history.data
             if (!histItems.isNullOrEmpty()) {
                 ItemList(
                     items = histItems,
+                    insetsPadding = insetsPadding,
                     onItemAction = onItemAction,
                     headerText = "History",
                     isHistory = true,
@@ -165,7 +135,7 @@ internal fun SearchScreenContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "No History Available\nTry Doing A Search",
+                            stringResource(R.string.no_history_available),
                             textAlign = TextAlign.Center,
                             fontSize = 24.sp,
                             fontFamily = alegreyaFamily,
@@ -175,59 +145,20 @@ internal fun SearchScreenContent(
                 }
             }
         } else {
-            ItemList(items = items, onItemAction = onItemAction)
+            ItemList(
+                items = items,
+                insetsPadding = insetsPadding,
+                onItemAction = onItemAction
+            )
         }
     }
-}
-
-@Composable
-fun SearchTextField(
-    text: String,
-    onSearchChanged: (String) -> Unit,
-    onReceivedFocus: () -> Unit,
-) {
-
-    OutlinedTextField(
-        value = text,
-        singleLine = true,
-        textStyle = TextStyle(
-            fontWeight = FontWeight.Bold,
-            fontSize = 22.sp,
-        ),
-        onValueChange = { new ->
-            onSearchChanged(new)
-        },
-        label = { Text("Search Anywhere") },
-        trailingIcon = {
-            if (text.isEmpty()) {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = "search icon",
-                )
-            } else {
-                Icon(
-                    Icons.Default.Clear,
-                    contentDescription = "clear text",
-                    modifier = Modifier.clickable {
-                        onSearchChanged("")
-                    }
-                )
-            }
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .onFocusChanged { focus ->
-                if (focus.isFocused) {
-                    onReceivedFocus()
-                }
-            }
-    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ItemList(
     items: ImmutableList<SearchItem>,
+    insetsPadding: PaddingValues,
     onItemAction: (ItemAction) -> Unit,
     headerText: String? = null,
     isHistory: Boolean = false,
@@ -236,11 +167,15 @@ private fun ItemList(
 
     LazyColumnScrollbar(
         listState,
+        modifier = Modifier.padding(bottom = insetsPadding.calculateBottomPadding()),
         selectionMode = ScrollbarSelectionMode.Full,
         alwaysShowScrollBar = false,
         hideDelayMillis = 1200,
     ) {
-        LazyColumn(state = listState) {
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(top = insetsPadding.calculateTopPadding())
+        ) {
             item {
                 Spacer(modifier = Modifier.padding(top = 10.dp))
             }
@@ -253,7 +188,7 @@ private fun ItemList(
                         fontFamily = alegreyaFamily,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 10.dp, bottom = 5.dp),
+                            .padding(vertical = 10.dp),
                     )
                 }
             }
@@ -295,7 +230,7 @@ private fun ItemCard(
 
     LongPressCard(
         modifier = modifier
-            .padding(vertical = 4.dp)
+            .padding(bottom = 8.dp)
             .clip(CardDefaults.shape)
             .onSizeChanged {
                 itemHeight = with(density) { it.height.toDp() }
@@ -333,15 +268,6 @@ fun DropdownItems(item: ItemType, isHistory: Boolean, onItemAction: (ItemAction)
             text = { Text("Remove from history") },
             onClick = { onItemAction(ItemAction.DeleteFromHistory(item)) })
     }
-    // TODO: there is no reliable way to open a specific folder in a third party file manager.
-    // need to roll our own file explorer for this to work lol
-    /*
-    if (item is ItemType.File) {
-        DropdownMenuItem(
-            text = { Text("Open folder") },
-            onClick = { onItemAction(ItemAction.OpenDirectory(item.item)) })
-    }
-     */
 }
 
 @Composable

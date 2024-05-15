@@ -7,9 +7,11 @@ import se.kalind.searchanywhere.domain.WorkResult
 import se.kalind.searchanywhere.domain.repo.SettingItem
 import se.kalind.searchanywhere.domain.repo.SettingsRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
 typealias SettingItems = Sequence<WeightedItem<SettingItem>>
 
+@Singleton
 class SettingsUseCase @Inject constructor(settingsRepository: SettingsRepository) {
 
     private val _filter: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())

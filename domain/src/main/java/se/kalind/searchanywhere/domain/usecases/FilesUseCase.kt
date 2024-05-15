@@ -7,9 +7,11 @@ import se.kalind.searchanywhere.domain.repo.FileItem
 import se.kalind.searchanywhere.domain.repo.FilesRepository
 import se.kalind.searchanywhere.domain.repo.ScanRoot
 import javax.inject.Inject
+import javax.inject.Singleton
 
 typealias FileItems = Sequence<WeightedItem<FileItem>>
 
+@Singleton
 class FilesUseCase @Inject constructor(
     private val filesRepository: FilesRepository,
 ) {
