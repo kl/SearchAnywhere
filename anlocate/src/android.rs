@@ -1,9 +1,9 @@
-use crate::build;
+use crate::{build, stat};
 use crate::build::DatabaseOptions;
 use crate::search;
 use jni::objects::{GlobalRef, JObject, JObjectArray, JString, JValue};
 use jni::strings::JNIString;
-use jni::sys::{jint, jobjectArray, jsize, JNI_ERR, JNI_VERSION_1_6};
+use jni::sys::{jint, jobjectArray, jsize, jlong, JNI_ERR, JNI_VERSION_1_6};
 use jni::JavaVM;
 use jni::{JNIEnv, NativeMethod};
 use std::ffi::c_void;
@@ -53,6 +53,11 @@ pub extern "C" fn JNI_OnLoad(vm: JavaVM) -> jint {
                 sig: "(Ljava/lang/String;[Ljava/lang/String;)[Ljava/lang/String;".into(),
                 fn_ptr: native_find_files as *mut c_void,
             },
+            NativeMethod {
+                name: "nativeGetStatIndexedFiles".into(),
+                sig: "(Ljava/lang/String;)J".into(),
+                fn_ptr: native_get_stat_indexed_files as *mut c_void,
+            },
         ],
     );
     if ret.is_err() {
@@ -85,9 +90,11 @@ pub extern "C" fn native_build_database<'local>(
     logcat_d(&mut env, format!("temp_dir: {}", temp_dir));
 
     let result = panic::catch_unwind(|| {
-        let mut options = DatabaseOptions::default();
-        options.temp_dir = temp_dir.into();
-        options.remove_root = true;
+        let options = DatabaseOptions {
+            temp_dir: temp_dir.into(),
+            remove_root: true,
+            ..Default::default()
+        };
         build::build_database(db_file, scan_root, options)
     });
     throw_if_err(&mut env, &result);
@@ -154,7 +161,7 @@ pub extern "C" fn native_find_files<'local>(
             return null;
         };
 
-        for (i, file) in files.into_iter().enumerate() {
+        for (i, file) in files.iter().enumerate() {
             let Ok(java_string) = env.new_string(file) else {
                 return null;
             };
@@ -172,6 +179,29 @@ pub extern "C" fn native_find_files<'local>(
     }
 }
 
+pub extern "C" fn native_get_stat_indexed_files<'local>(
+    mut env: JNIEnv<'local>,
+    _obj: JObject<'local>,
+    db_file: JString<'local>,
+) -> jlong {
+    let Ok(db_file) = get_string(&mut env, &db_file) else {
+        return -1;
+    };
+    // call the lib stats function
+    let result = panic::catch_unwind(|| {
+        let mut reader = BufReader::new(File::open(db_file).expect("failed to open database file"));
+        stat::get_stats(&mut reader)
+    });
+
+    throw_if_err(&mut env, &result);
+
+    if let Ok(Ok(stats)) = result {
+        stats.indexed_files.min(jlong::MAX as u64) as jlong
+    } else {
+        -1
+    }
+}
+
 #[inline]
 fn class_global_ref(
     env: &mut JNIEnv,
@@ -181,7 +211,7 @@ fn class_global_ref(
 }
 
 #[inline]
-fn throw_if_err<'local, E1, T2, E2>(env: &mut JNIEnv<'local>, result: &Result<Result<T2, E2>, E1>)
+fn throw_if_err<E1, T2, E2>(env: &mut JNIEnv, result: &Result<Result<T2, E2>, E1>)
 where
     E1: Debug,
     E2: Debug,

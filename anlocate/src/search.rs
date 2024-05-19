@@ -33,15 +33,9 @@ pub fn search<T: AsRef<str>>(
 
     loop {
         buf.clear();
-        if util::read_line_include_newline(reader, &mut buf)? == 0 {
+        if util::read_db_entry_include_newline(reader, &mut buf)? == 0 {
             // we have reached EOF
             break;
-        }
-        // We read up to and including a \n. This \n could be the end-of-line \n
-        // or it may be a 0xA byte in the common length number. If the latter is true we need to
-        // keep reading until we get to the end-of-line \n.
-        while !last_char_is_line_sep_newline(&buf) {
-            util::read_line_include_newline(reader, &mut buf)?;
         }
         // remove the end-of-line \n
         buf.pop();
@@ -65,7 +59,7 @@ pub fn search<T: AsRef<str>>(
 
 fn is_search_match(path: &str, search: &[(&str, bool)]) -> bool {
     for (search, search_is_ascii) in search {
-        if !util::caseless_contains(path, *search, *search_is_ascii) {
+        if !util::caseless_contains(path, search, *search_is_ascii) {
             return false;
         }
     }
@@ -95,26 +89,6 @@ fn decompress_line(prev: &[u8], curr: &[u8]) -> Result<String, FromUtf8Error> {
     result.extend_from_slice(current);
 
     String::from_utf8(result)
-}
-
-fn last_char_is_line_sep_newline(buf: &[u8]) -> bool {
-    assert!(!buf.is_empty(), "buf cannot be empty");
-    assert_eq!(
-        buf[buf.len() - 1],
-        b'\n',
-        "last char in buf was not a newline"
-    );
-
-    if buf.len() == 1 {
-        return false;
-    }
-
-    match buf[0] {
-        253 => buf.len() > 3,
-        254 => buf.len() > 4,
-        255 => buf.len() > 5,
-        _ => true,
-    }
 }
 
 #[derive(Debug)]

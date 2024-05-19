@@ -16,6 +16,44 @@ pub fn read_line_include_newline(
     reader.read_until(b'\n', buf)
 }
 
+/// We read up to and including a \n. This \n could be the end-of-line \n,
+/// or it may be a 0xA byte in the common length number. If the latter is true we need to
+/// keep reading until we get to the end-of-line \n.
+pub fn read_db_entry_include_newline(
+    reader: &mut BufReader<impl Read>,
+    buf: &mut Vec<u8>,
+) -> io::Result<usize> {
+    let mut read = read_line_include_newline(reader, buf)?;
+    if read == 0 {
+        // we have reached EOF
+        return Ok(0);
+    }
+    while !last_char_is_line_sep_newline(buf) {
+        read += read_line_include_newline(reader, buf)?;
+    }
+    Ok(read)
+}
+
+fn last_char_is_line_sep_newline(buf: &[u8]) -> bool {
+    assert!(!buf.is_empty(), "buf cannot be empty");
+    assert_eq!(
+        buf[buf.len() - 1],
+        b'\n',
+        "last char in buf was not a newline"
+    );
+
+    if buf.len() == 1 {
+        return false;
+    }
+
+    match buf[0] {
+        253 => buf.len() > 3,
+        254 => buf.len() > 4,
+        255 => buf.len() > 5,
+        _ => true,
+    }
+}
+
 /// Returns true if a contains b using Unicode-aware case-insensitive compare
 /// note: does not do normalization
 pub fn caseless_contains(a: &str, b: &str, b_is_ascii: bool) -> bool {
