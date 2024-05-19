@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.kalind.searchanywhere.domain.usecases.FilesUseCase
@@ -26,14 +27,6 @@ class ConfigViewModel @Inject constructor(
     private val ucPrefs: PreferencesUseCase,
 ) : ViewModel() {
 
-    init {
-        viewModelScope.launch {
-            ucPrefs.reindexOnStartup.collect { reindex ->
-                _reindexOnStartup.value = reindex
-            }
-        }
-    }
-
     // Needed to prevent yank when toggling the switch
     private val _reindexOnStartup = MutableStateFlow(false)
 
@@ -41,7 +34,7 @@ class ConfigViewModel @Inject constructor(
 
     val uiState: StateFlow<UiState> = combine(
         ucFiles.indexedFilesCount,
-        _reindexOnStartup,
+        merge(_reindexOnStartup, ucPrefs.reindexOnStartup),
         _reindexButtonEnabled,
     ) { indexedFileCount, reindexOnStartup, reindexButtonEnabled ->
         UiState(
