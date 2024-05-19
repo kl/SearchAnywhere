@@ -43,25 +43,19 @@ import se.kalind.searchanywhere.presentation.theme.AppTheme
 @Composable
 fun AppBottomBar(
     viewModel: AppBottomBarViewModel,
+    expandSearchField: Boolean,
     onSettingsNavClicked: () -> Unit,
     onSearchNavClicked: () -> Unit,
 ) {
     val currentText by viewModel.currentSearchText.collectAsStateWithLifecycle()
-    val expand by viewModel.expandSearchField.collectAsStateWithLifecycle();
 
     AppBottomBarContent(
         searchText = currentText,
-        expandSearchField = expand,
+        expandSearchField = expandSearchField,
         onSearchChanged = viewModel::onSearchChanged,
         onSearchReceivedFocus = viewModel::onSearchFieldFocused,
-        onSettingsNavClicked = {
-            viewModel.onNavigateToSettings()
-            onSettingsNavClicked()
-        },
-        onSearchNavClicked = {
-            viewModel.onNavigateToSearch()
-            onSearchNavClicked()
-        }
+        onSettingsNavClicked = onSettingsNavClicked,
+        onSearchNavClicked = onSearchNavClicked,
     )
 }
 
@@ -143,7 +137,7 @@ fun AppBottomBarContent(
                         onClick = onSearchNavClicked
                     )
                     NavigationBarItem(
-                        selected = false,
+                        selected = true,
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.Settings,

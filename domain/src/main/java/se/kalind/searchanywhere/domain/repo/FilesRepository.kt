@@ -10,11 +10,12 @@ import se.kalind.searchanywhere.domain.usecases.DisplayName
 interface FilesRepository {
 
     val searchResults: Flow<FileSearchResult>
+    val indexedFilesCount: Flow<Long>
     fun history(): Flow<List<Pair<FileItem, UnixTimeMs>>>
 
     fun setSearchQuery(query: List<String>)
-    fun buildDatabase(scanRoot: ScanRoot)
-    fun buildDatabaseIfNotExists(scanRoot: ScanRoot)
+    suspend fun buildDatabase(scanRoot: ScanRoot)
+    suspend fun buildDatabaseIfNotExists(scanRoot: ScanRoot)
     fun saveToHistory(item: FileItem)
     fun deleteFromHistory(item: FileItem)
 }

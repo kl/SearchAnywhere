@@ -2,6 +2,9 @@ package se.kalind.searchanywhere.data.di
 
 import android.content.Context
 import android.os.Environment
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import dagger.Module
 import dagger.Provides
@@ -16,13 +19,20 @@ import se.kalind.searchanywhere.data.apps.DefaultAppsRepository
 import se.kalind.searchanywhere.data.files.AnlocateLibrary
 import se.kalind.searchanywhere.data.files.DefaultFilesRepository
 import se.kalind.searchanywhere.data.files.FileHistoryDao
+import se.kalind.searchanywhere.data.prefs.DefaultPreferencesRepository
 import se.kalind.searchanywhere.data.settings.DefaultSettingsRepository
 import se.kalind.searchanywhere.data.settings.SettingHistoryDao
 import se.kalind.searchanywhere.domain.repo.AppsRepository
 import se.kalind.searchanywhere.domain.repo.FilesRepository
+import se.kalind.searchanywhere.domain.repo.PreferencesRepository
 import se.kalind.searchanywhere.domain.repo.SettingsRepository
 import javax.inject.Named
 import javax.inject.Singleton
+
+// this api is stupid
+private val Context.userDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "settings"
+)
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -64,8 +74,22 @@ object RepositoryModule {
             databaseFilePath = context.filesDir.absolutePath + "/anlocate.bin",
             tempDirPath = context.filesDir.absolutePath + "/anlocate_temp",
             scanDirRootPath = Environment.getExternalStorageDirectory().absolutePath,
-            ioDispatcher,
-            appScope
+            ioDispatcher = ioDispatcher,
+            appScope = appScope
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providePreferencesRepository(
+        dataStore: DataStore<Preferences>,
+        @Named("io") ioDispatcher: CoroutineDispatcher,
+        appScope: CoroutineScope,
+    ): PreferencesRepository {
+        return DefaultPreferencesRepository(
+            dataStore = dataStore,
+            appScope = appScope,
+            ioDispatcher = ioDispatcher
         )
     }
 }
@@ -106,5 +130,17 @@ object NativeCodeModule {
     @Provides
     fun provideAnlocateLibrary(): AnlocateLibrary {
         return AnlocateLibrary()
+    }
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object PreferencesModule {
+    @Provides
+    @Singleton
+    fun provideDataStore(
+        @ApplicationContext context: Context,
+    ): DataStore<Preferences> {
+        return context.userDataStore
     }
 }

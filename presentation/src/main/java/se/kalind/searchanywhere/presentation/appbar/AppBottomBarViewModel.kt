@@ -6,10 +6,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import se.kalind.searchanywhere.domain.usecases.AppsUseCase
 import se.kalind.searchanywhere.domain.usecases.FilesUseCase
 import se.kalind.searchanywhere.domain.usecases.SettingsUseCase
@@ -36,9 +38,6 @@ class AppBottomBarViewModel @Inject constructor(
     private val _showPermissionRationale: MutableStateFlow<(() -> Unit)?> = MutableStateFlow(null)
     val showPermissionRationale: StateFlow<(() -> Unit)?> = _showPermissionRationale
 
-    private var _expandSearchField = MutableStateFlow(true)
-    val expandSearchField = _expandSearchField.asStateFlow()
-
     fun onSearchChanged(text: String) {
         _currentSearchText.value = text
         ucSettings.setFilter(text)
@@ -54,7 +53,9 @@ class AppBottomBarViewModel @Inject constructor(
         activity.requestFilePermissions(object : PermissionStatusCallback {
             override fun onGranted() {
                 Log.d("SearchAnywhere", "file permissions granted")
-                ucFiles.createDatabaseIfNeeded()
+                viewModelScope.launch {
+                    ucFiles.createDatabaseIfNeeded()
+                }
                 filePermissionsGranted = true
             }
 
@@ -73,13 +74,5 @@ class AppBottomBarViewModel @Inject constructor(
                 }
             }
         })
-    }
-
-    fun onNavigateToSettings() {
-        _expandSearchField.value = false
-    }
-
-    fun onNavigateToSearch() {
-        _expandSearchField.value = true
     }
 }

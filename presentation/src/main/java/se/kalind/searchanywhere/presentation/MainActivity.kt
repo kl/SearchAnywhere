@@ -30,7 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import se.kalind.searchanywhere.domain.usecases.FilesUseCase
+import se.kalind.searchanywhere.domain.usecases.PreferencesUseCase
 import se.kalind.searchanywhere.presentation.theme.AppTheme
 import javax.inject.Inject
 
@@ -45,13 +49,17 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var files: FilesUseCase
 
+    @Inject
+    lateinit var prefs: PreferencesUseCase
+
+    @Inject
+    lateinit var appScope: CoroutineScope
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        checkRebuildDb()
 
-        if (isFilePermissionsGranted()) {
-            files.rebuildDatabase()
-        }
         setContent {
             AppTheme {
                 Surface(
@@ -67,6 +75,14 @@ class MainActivity : ComponentActivity() {
                 ) {
                     App()
                 }
+            }
+        }
+    }
+
+    private fun checkRebuildDb() {
+        appScope.launch {
+            if (isFilePermissionsGranted() && prefs.reindexOnStartup.first()) {
+                files.rebuildDatabase()
             }
         }
     }

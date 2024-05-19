@@ -23,15 +23,17 @@ class FilesUseCase @Inject constructor(
             }
         }
 
+    val indexedFilesCount: Flow<Long> = filesRepository.indexedFilesCount
+
     fun search(query: String) {
         filesRepository.setSearchQuery(splitFilter(query))
     }
 
-    fun rebuildDatabase() {
+    suspend fun rebuildDatabase() {
         filesRepository.buildDatabase(ScanRoot.EXTERNAL_MAIN)
     }
 
-    fun createDatabaseIfNeeded() {
+    suspend fun createDatabaseIfNeeded() {
         filesRepository.buildDatabaseIfNotExists(ScanRoot.EXTERNAL_MAIN)
     }
 }

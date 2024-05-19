@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import se.kalind.searchanywhere.domain.UnixTimeMs
 import se.kalind.searchanywhere.domain.WorkResult
 import se.kalind.searchanywhere.domain.repo.FileItem
@@ -32,13 +33,17 @@ class DefaultFilesRepository(
         MutableStateFlow(FileSearchResult(searchQuery = emptyList(), files = WorkResult.Loading))
     override val searchResults: Flow<FileSearchResult> = _searchResults
 
-    override fun buildDatabase(scanRoot: ScanRoot) {
-        appScope.launch(ioDispatcher) {
+    private val _indexedFilesCount = MutableStateFlow(0L)
+    override val indexedFilesCount: Flow<Long> = _indexedFilesCount
+
+    override suspend fun buildDatabase(scanRoot: ScanRoot) {
+        withContext(ioDispatcher) {
             try {
                 val duration = measureTime {
                     lib.nativeBuildDatabase(databaseFilePath, scanDirRootPath, tempDirPath)
                 }
                 Log.i("SearchAnywhere", "native build db: ${duration.inWholeMilliseconds} ms")
+                _indexedFilesCount.value = lib.nativeGetStatIndexedFiles(databaseFilePath)
             } catch (e: Exception) {
                 if (e.message?.contains("permission denied", ignoreCase = true) == true) {
                     Log.e("SearchAnywhere", "buildDatabase: permission denied")
@@ -49,7 +54,7 @@ class DefaultFilesRepository(
         }
     }
 
-    override fun buildDatabaseIfNotExists(scanRoot: ScanRoot) {
+    override suspend fun buildDatabaseIfNotExists(scanRoot: ScanRoot) {
         if (!File(databaseFilePath).isFile) {
             buildDatabase(scanRoot)
         }

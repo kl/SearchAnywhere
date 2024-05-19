@@ -6,7 +6,10 @@ import java.util.regex.Pattern
 private val WHITESPACE = Pattern.compile("\\s+")
 private val DELIMITER = Pattern.compile("""(?<!\\)&""")
 
-fun <T : DisplayName> filterItems(items: Sequence<T>, queries: List<String>): Sequence<WeightedItem<T>> {
+fun <T : DisplayName> filterItems(
+    items: Sequence<T>,
+    queries: List<String>
+): Sequence<WeightedItem<T>> {
     return if (queries.isEmpty() || queries.first().isEmpty()) {
         emptySequence()
     } else {

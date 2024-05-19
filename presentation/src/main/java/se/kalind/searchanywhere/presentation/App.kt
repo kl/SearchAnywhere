@@ -6,7 +6,10 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -19,7 +22,7 @@ import se.kalind.searchanywhere.presentation.appbar.AppBottomBar
 import se.kalind.searchanywhere.presentation.appbar.AppBottomBarViewModel
 import se.kalind.searchanywhere.presentation.search.SearchScreen
 import se.kalind.searchanywhere.presentation.search.SearchScreenViewModel
-import se.kalind.searchanywhere.presentation.settings.SettingsScreen
+import se.kalind.searchanywhere.presentation.config.SettingsScreen
 
 class Routes {
     companion object {
@@ -41,6 +44,8 @@ fun App(
     val currentRoute =
         navBackStackEntry?.destination?.route ?: Routes.SEARCH
 
+    var expandSearchField by rememberSaveable { mutableStateOf(true) }
+
     Scaffold(
         snackbarHost = {
             SnackbarHost(
@@ -50,10 +55,13 @@ fun App(
         bottomBar = {
             AppBottomBar(
                 viewModel = searchBarVm,
+                expandSearchField = expandSearchField,
                 onSettingsNavClicked = {
+                    expandSearchField = false
                     navController.navigateBarItem(Routes.SETTINGS)
                 },
                 onSearchNavClicked = {
+                    expandSearchField = true
                     navController.navigateBarItem(Routes.SEARCH)
                 },
             )
@@ -74,7 +82,7 @@ fun App(
                 )
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen(insetsPadding)
+                SettingsScreen(insetsPadding = insetsPadding)
             }
         }
     }

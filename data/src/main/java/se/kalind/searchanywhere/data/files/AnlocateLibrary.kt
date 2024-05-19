@@ -9,4 +9,5 @@ class AnlocateLibrary {
 
     external fun nativeBuildDatabase(dbFile: String, scanRoot: String, tempDir: String)
     external fun nativeFindFiles(dbFile: String, query: Array<String>): Array<String>
+    external fun nativeGetStatIndexedFiles(dbFile: String): Long
 }

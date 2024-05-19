@@ -51,7 +51,7 @@ rustup target add \
   x86_64-linux-android
 ```
 
-* Add the following to `~/.cargo/config` (replace NDK_INSTALL_DIR with the absolute path of the NDK
+* Add the following to `~/.cargo/config.toml` (replace NDK_INSTALL_DIR with the absolute path of the NDK
   directory):
 
 ```
