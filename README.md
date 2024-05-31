@@ -2,6 +2,8 @@
 
 Android app to quickly find and open settings, apps and files.
 
+Uses a file path database similar to the Linux 'locate' command to speed up file searches.
+
 ![app screenshot](screenshot.png)
 
 ## Architecture
