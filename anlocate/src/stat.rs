@@ -7,17 +7,16 @@ pub struct Stats {
     pub size_bytes: u64,
 }
 
-pub fn get_stats(
-    database_file_reader: &mut BufReader<impl Read>,
-) -> Result<Stats, StatsError> {
-
+pub fn get_stats(database_file_reader: &mut BufReader<impl Read>) -> Result<Stats, StatsError> {
     let mut buf = vec![];
     let mut lines = 0;
     let mut bytes = 0;
 
     loop {
         let read = util::read_db_entry_include_newline(database_file_reader, &mut buf)?;
-        if read == 0 { break }
+        if read == 0 {
+            break;
+        }
         buf.clear();
         bytes += read as u64;
         lines += 1;
@@ -27,7 +26,6 @@ pub fn get_stats(
         indexed_files: lines,
         size_bytes: bytes,
     })
-
 }
 
 #[derive(Debug)]

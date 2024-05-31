@@ -1,22 +1,38 @@
 use crate::util;
+use std::cmp::PartialEq;
 use std::io::{self, BufReader, Read};
 use std::string::FromUtf8Error;
 
-pub fn search<T: AsRef<str>>(
+#[derive(Debug, PartialEq)]
+pub enum MatchType {
+    Include,
+    Exclude,
+}
+
+#[derive(Debug)]
+pub struct SearchQuery<'a> {
+    query: &'a str,
+    match_type: MatchType,
+    ascii_only: bool,
+}
+
+impl<'a> SearchQuery<'a> {
+    pub fn new(query: &'a str, match_type: MatchType) -> Self {
+        SearchQuery {
+            query,
+            match_type,
+            ascii_only: query.is_ascii(),
+        }
+    }
+}
+
+pub fn search(
     reader: &mut BufReader<impl Read>,
-    search: &[T],
+    search: &[SearchQuery],
 ) -> Result<Vec<String>, SearchError> {
-
-    // Cache whether the search are pure ascii or not.
-    let search: Vec<(&str, bool)> = search
-        .iter()
-        .map(T::as_ref)
-        .map(|s| (s, s.is_ascii()))
-        .collect();
-
     let mut matches = Vec::<String>::new();
     if search.is_empty() {
-        return Ok(matches)
+        return Ok(matches);
     }
 
     let mut buf = Vec::new();
@@ -24,7 +40,7 @@ pub fn search<T: AsRef<str>>(
     let first = decompress_line(&[], &buf)?;
 
     // Prev is stored in this local or as the last element of `result` if it matched the search.
-    let mut prev = if is_search_match(&first, &search) {
+    let mut prev = if is_search_match(&first, search) {
         matches.push(first);
         None
     } else {
@@ -47,7 +63,7 @@ pub fn search<T: AsRef<str>>(
 
         let curr = decompress_line(prev_bytes, &buf)?;
 
-        if is_search_match(&curr, &search) {
+        if is_search_match(&curr, search) {
             matches.push(curr);
             prev = None;
         } else {
@@ -57,9 +73,13 @@ pub fn search<T: AsRef<str>>(
     Ok(matches)
 }
 
-fn is_search_match(path: &str, search: &[(&str, bool)]) -> bool {
-    for (search, search_is_ascii) in search {
-        if !util::caseless_contains(path, search, *search_is_ascii) {
+fn is_search_match(path: &str, search: &[SearchQuery]) -> bool {
+    for query in search {
+        let hit = util::caseless_contains(path, query.query, query.ascii_only);
+        if query.match_type == MatchType::Include && !hit {
+            return false;
+        }
+        if query.match_type == MatchType::Exclude && hit {
             return false;
         }
     }
@@ -149,39 +169,59 @@ mod tests {
 
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
         assert_eq!(
-            search(&mut reader, &["/a"]).unwrap(),
+            search(&mut reader, &query(&["/a"])).unwrap(),
             vec!["/usr/src/cmd/aardvark.c", "/usr/src/cmd/armadillo.c",]
         );
 
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
         assert_eq!(
-            search(&mut reader, &["/a", "ARK"]).unwrap(),
+            search(&mut reader, &query(&["/a", "ARK"])).unwrap(),
             vec!["/usr/src/cmd/aardvark.c"]
         );
 
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
-        assert_eq!(search(&mut reader, &["?"]).unwrap(), vec!["/x/has/com?"]);
+        assert_eq!(
+            search(&mut reader, &query(&["?"])).unwrap(),
+            vec!["/x/has/com?"]
+        );
 
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
         assert_eq!(
-            search(&mut reader, &["sdkjfhljsdhfl"]).unwrap(),
+            search(&mut reader, &query(&["sdkjfhljsdhfl"])).unwrap(),
             Vec::<String>::new()
         );
 
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
         assert_eq!(
-            search(&mut reader, &["longer/than/251/bytes"])
+            search(&mut reader, &query(&["longer/than/251/bytes"]))
                 .unwrap()
                 .len(),
             3
         );
 
+        // test excludes
+        let mut reader = BufReader::new(File::open(&file_path).unwrap());
+        let q = vec![
+            SearchQuery::new(".c", MatchType::Include),
+            SearchQuery::new("aard", MatchType::Exclude),
+        ];
+        assert_eq!(
+            search(&mut reader, &q).unwrap(),
+            vec!["/usr/src/cmd/armadillo.c"]
+        );
+
         // test reading when common length contains 0xA
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
-        assert_eq!(search(&mut reader, &["xax"]).unwrap().len(), 1);
+        assert_eq!(search(&mut reader, &query(&["xax"])).unwrap().len(), 1);
 
         // test reading when first bye is 0xA
         let mut reader = BufReader::new(File::open(&file_path).unwrap());
-        assert_eq!(search(&mut reader, &["?"]).unwrap().len(), 1);
+        assert_eq!(search(&mut reader, &query(&["?"])).unwrap().len(), 1);
+    }
+
+    fn query<'a>(q: &'a [&str]) -> Vec<SearchQuery<'a>> {
+        q.iter()
+            .map(|s| SearchQuery::new(s, MatchType::Include))
+            .collect()
     }
 }

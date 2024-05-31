@@ -13,11 +13,21 @@ interface FilesRepository {
     val indexedFilesCount: Flow<Long>
     fun history(): Flow<List<Pair<FileItem, UnixTimeMs>>>
 
-    fun setSearchQuery(query: List<String>)
+    fun setSearchQuery(query: List<SearchQuery>)
     suspend fun buildDatabase(scanRoot: ScanRoot)
     suspend fun buildDatabaseIfNotExists(scanRoot: ScanRoot)
     fun saveToHistory(item: FileItem)
     fun deleteFromHistory(item: FileItem)
+}
+
+data class SearchQuery(
+    val query: String,
+    val matchType: MatchType
+)
+
+enum class MatchType {
+    INCLUDE,
+    EXCLUDE,
 }
 
 enum class ScanRoot {
@@ -32,6 +42,6 @@ data class FileItem(override val displayName: String) : DisplayName, ToItemType 
 }
 
 data class FileSearchResult(
-    val searchQuery: List<String>,
+    val searchQuery: List<SearchQuery>,
     val files: WorkResult<Array<String>>
 )

@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import se.kalind.searchanywhere.domain.WorkResult
+import se.kalind.searchanywhere.domain.repo.SearchQuery
 import se.kalind.searchanywhere.domain.repo.SettingItem
 import se.kalind.searchanywhere.domain.repo.SettingsRepository
 import javax.inject.Inject
@@ -14,7 +15,7 @@ typealias SettingItems = Sequence<WeightedItem<SettingItem>>
 @Singleton
 class SettingsUseCase @Inject constructor(settingsRepository: SettingsRepository) {
 
-    private val _filter: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
+    private val _filter: MutableStateFlow<List<SearchQuery>> = MutableStateFlow(emptyList())
 
     val filteredSettings: Flow<WorkResult<SettingItems>> =
         settingsRepository.availableSettings().combine(_filter) { settings, filter ->

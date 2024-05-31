@@ -1,9 +1,10 @@
-use crate::{build, stat};
 use crate::build::DatabaseOptions;
 use crate::search;
-use jni::objects::{GlobalRef, JObject, JObjectArray, JString, JValue};
+use crate::search::{MatchType, SearchQuery};
+use crate::{build, stat};
+use jni::objects::{GlobalRef, JBooleanArray, JObject, JObjectArray, JString, JValue};
 use jni::strings::JNIString;
-use jni::sys::{jint, jobjectArray, jsize, jlong, JNI_ERR, JNI_VERSION_1_6};
+use jni::sys::{jint, jlong, jobjectArray, jsize, JNI_ERR, JNI_VERSION_1_6};
 use jni::JavaVM;
 use jni::{JNIEnv, NativeMethod};
 use std::ffi::c_void;
@@ -50,7 +51,7 @@ pub extern "C" fn JNI_OnLoad(vm: JavaVM) -> jint {
             },
             NativeMethod {
                 name: "nativeFindFiles".into(),
-                sig: "(Ljava/lang/String;[Ljava/lang/String;)[Ljava/lang/String;".into(),
+                sig: "(Ljava/lang/String;[Ljava/lang/String;[Z)[Ljava/lang/String;".into(),
                 fn_ptr: native_find_files as *mut c_void,
             },
             NativeMethod {
@@ -101,12 +102,13 @@ pub extern "C" fn native_build_database<'local>(
     logcat_d(&mut env, "build db ok");
 }
 
-// this function gets called frequently so it should be as fast as possible
+// this function gets called frequently, so it should be as fast as possible
 pub extern "C" fn native_find_files<'local>(
     mut env: JNIEnv<'local>,
     _obj: JObject<'local>,
     db_file: JString<'local>,
     query: JObjectArray<'local>,
+    include_exclude: JBooleanArray<'local>,
 ) -> jobjectArray {
     let null = JObject::null().into_raw();
 
@@ -126,7 +128,29 @@ pub extern "C" fn native_find_files<'local>(
     let Ok(query_len) = env.get_array_length(&query) else {
         return null;
     };
-    let mut queries: Vec<String> = Vec::new();
+    let Ok(include_exclude_len) = env.get_array_length(&include_exclude) else {
+        return null;
+    };
+
+    if query_len != include_exclude_len {
+        throw(
+            &mut env,
+            "java/lang/IllegalStateException",
+            "include_exclude length must be the same as query length",
+        );
+        return null;
+    }
+
+    let mut include_exclude_vec = vec![0u8; query_len as usize];
+    if env
+        .get_boolean_array_region(&include_exclude, 0, &mut include_exclude_vec)
+        .is_err()
+    {
+        return null;
+    }
+
+    let mut query_vec: Vec<String> = Vec::new();
+
     for i in 0..query_len {
         let Ok(obj) = env.get_object_array_element(&query, i) else {
             return null;
@@ -134,13 +158,15 @@ pub extern "C" fn native_find_files<'local>(
         let Ok(query_str) = get_string(&mut env, &JString::from(obj)) else {
             return null;
         };
-        queries.push(query_str);
+        query_vec.push(query_str);
     }
+
+    let search_query = make_search_queries(&query_vec, &include_exclude_vec);
 
     // call the lib search function
     let result = panic::catch_unwind(|| {
         let mut reader = BufReader::new(File::open(db_file).expect("failed to open database file"));
-        search::search(&mut reader, &queries)
+        search::search(&mut reader, &search_query)
     });
 
     throw_if_err(&mut env, &result);
@@ -278,4 +304,22 @@ fn logcat_d(env: &mut JNIEnv, message: impl Into<JNIString>) {
             JValue::Object(&JObject::from(message_string)),
         ],
     );
+}
+
+fn make_search_queries<'a>(
+    query_vec: &'a [String],
+    include_exclude_vec: &[u8],
+) -> Vec<SearchQuery<'a>> {
+    query_vec
+        .iter()
+        .zip(include_exclude_vec.iter())
+        .map(|(q, i)| {
+            let match_type = if *i == 1 {
+                MatchType::Include
+            } else {
+                MatchType::Exclude
+            };
+            SearchQuery::new(q.as_str(), match_type)
+        })
+        .collect()
 }

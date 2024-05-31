@@ -14,7 +14,9 @@ import se.kalind.searchanywhere.domain.WorkResult
 import se.kalind.searchanywhere.domain.repo.FileItem
 import se.kalind.searchanywhere.domain.repo.FileSearchResult
 import se.kalind.searchanywhere.domain.repo.FilesRepository
+import se.kalind.searchanywhere.domain.repo.MatchType
 import se.kalind.searchanywhere.domain.repo.ScanRoot
+import se.kalind.searchanywhere.domain.repo.SearchQuery
 import java.io.File
 import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
@@ -60,12 +62,18 @@ class DefaultFilesRepository(
         }
     }
 
-    override fun setSearchQuery(query: List<String>) {
+    override fun setSearchQuery(query: List<SearchQuery>) {
         appScope.launch(ioDispatcher) {
             try {
                 if (File(databaseFilePath).isFile) {
+                    val (q, includeExclude) = query.split()
+
                     val (files, duration) = measureTimedValue {
-                        lib.nativeFindFiles(databaseFilePath, query.toTypedArray())
+                        lib.nativeFindFiles(
+                            dbFile = databaseFilePath,
+                            query = q,
+                            includeExclude = includeExclude,
+                        )
                     }
                     Log.i("SearchAnywhere", "native search: ${duration.inWholeMilliseconds} ms")
                     _searchResults.value = FileSearchResult(query, WorkResult.Success(files))
@@ -101,6 +109,17 @@ class DefaultFilesRepository(
             fileHistoryDao.deleteFromHistory(item.toEntity())
         }
     }
+}
+
+// Convert a list of SearchQuery to the native library expected call format (two arrays)
+private fun List<SearchQuery>.split(): Pair<Array<String>, BooleanArray> {
+    val q = mutableListOf<String>()
+    val i = mutableListOf<Boolean>()
+    for (query in this) {
+        q.add(query.query)
+        i.add(query.matchType == MatchType.INCLUDE)
+    }
+    return q.toTypedArray() to i.toBooleanArray()
 }
 
 private fun FileItem.toEntity(): FileHistoryEntity {
