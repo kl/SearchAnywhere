@@ -1,43 +1,44 @@
 [versions]
-agp = "8.4.0"
+agp = "8.4.2"
 datastorePreferences = "1.1.1"
 javaxInject = "1"
-kotlin = "1.9.23"
+kotlin = "2.0.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
-lifecycleRuntimeKtx = "2.7.0"
+kotlinxSerializationJson = "1.6.3"
+kotlinxSerializationPlugin = "2.0.20-Beta1"
+lifecycleRuntimeKtx = "2.8.2"
 activityCompose = "1.9.0"
-composeBom = "2024.05.00"
+composeBom = "2024.06.00"
 jetbrainsKotlinJvm = "1.9.23"
 accompanistDrawablepainter = "0.30.1"
 androidGradlePlugin = "8.4.0"
 androidxCore = "1.13.0"
-androidxLifecycle = "2.7.0"
+androidxLifecycle = "2.8.2"
 androidxActivity = "1.9.0"
 androidxComposeBom = "2024.04.01"
-androidxComposeCompiler = "1.5.13"
-androidxFragment = "1.7.0"
+androidxFragment = "1.8.0"
 androidxHilt = "1.2.0"
-androidxNavigation = "2.7.7"
+androidxNavigation = "2.8.0-beta03"
 androidxRoom = "2.6.1"
 androidxTest = "1.5.0"
 androidxTestExt = "1.1.5"
 androidxTestRunner = "1.5.2"
 coreTesting = "2.2.0"
-coroutines = "1.8.0"
+coroutines = "1.8.1"
 espressoContrib = "3.5.1"
-hilt = "2.49"
+hilt = "2.51.1"
 kotlinxCollectionsImmutable = "0.3.7"
-ksp = "1.9.23-1.0.19"
+ksp = "2.0.0-1.0.21"
 lazycolumnscrollbar = "1.10.0"
-materialIconsExtended = "1.6.7"
-materialVersion = "1.6.7"
+materialIconsExtended = "1.6.8"
+materialVersion = "1.6.8"
 mockitoKotlin = "5.3.1"
 reportGenerator = "1.2.0"
 kotlinGradlePlugin = "1.9.23"
-appcompat = "1.6.1"
+appcompat = "1.7.0"
 material = "1.12.0"
 
 [libraries]
@@ -61,7 +62,6 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanistDrawablepainter" }
 androidx-activity = { module = "androidx.activity:activity", version.ref = "androidxActivity" }
-androidx-compose-compiler = { module = "androidx.compose.compiler:compiler", version.ref = "androidxComposeCompiler" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
@@ -90,6 +90,7 @@ hilt-gradle-plugin = { module = "com.google.dagger:hilt-android-gradle-plugin", 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 lazyColumnScrollbar = { module = "com.github.nanihadesuka:LazyColumnScrollbar", version.ref = "lazycolumnscrollbar" }
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlin" }
@@ -105,6 +106,7 @@ jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrai
 kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt-gradle = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose-report-generator = { id = "dev.shreyaspatil.compose-compiler-report-generator", version.ref = "reportGenerator" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlinxSerializationPlugin" }

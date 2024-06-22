@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.hilt.gradle)
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.report.generator)
+    alias(libs.plugins.kotlin.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -44,9 +46,6 @@ android {
         buildConfig = false
         renderScript = false
         shaders = false
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.androidxComposeCompiler.get()
     }
 }
 
@@ -88,6 +87,9 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.material)
     implementation(libs.androidx.hilt.navigation.compose)
+
+    // Kotlin
+    implementation(libs.kotlinx.serialization.json)
 
     // Accompanist
     implementation(libs.accompanist.drawablepainter)
