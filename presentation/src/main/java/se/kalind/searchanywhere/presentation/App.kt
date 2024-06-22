@@ -16,20 +16,13 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.serialization.Serializable
 import se.kalind.searchanywhere.presentation.appbar.AppBottomBar
 import se.kalind.searchanywhere.presentation.appbar.AppBottomBarViewModel
+import se.kalind.searchanywhere.presentation.config.SettingsScreen
 import se.kalind.searchanywhere.presentation.search.SearchScreen
 import se.kalind.searchanywhere.presentation.search.SearchScreenViewModel
-import se.kalind.searchanywhere.presentation.config.SettingsScreen
-
-class Routes {
-    companion object {
-        const val SEARCH = "search"
-        const val SETTINGS = "settings"
-    }
-}
 
 @Composable
 fun App(
@@ -39,10 +32,6 @@ fun App(
     val navController = rememberNavController()
 
     val snackbarHostState = remember { SnackbarHostState() }
-
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute =
-        navBackStackEntry?.destination?.route ?: Routes.SEARCH
 
     var expandSearchField by rememberSaveable { mutableStateOf(true) }
 
@@ -58,11 +47,11 @@ fun App(
                 expandSearchField = expandSearchField,
                 onSettingsNavClicked = {
                     expandSearchField = false
-                    navController.navigateBarItem(Routes.SETTINGS)
+                    navController.navigateBarItem(SettingsRoute)
                 },
                 onSearchNavClicked = {
                     expandSearchField = true
-                    navController.navigateBarItem(Routes.SEARCH)
+                    navController.navigateBarItem(SearchRoute)
                 },
             )
         }
@@ -71,9 +60,9 @@ fun App(
         NavHost(
             modifier = Modifier.consumeWindowInsets(insetsPadding),
             navController = navController,
-            startDestination = currentRoute
+            startDestination = SearchRoute,
         ) {
-            composable(Routes.SEARCH) {
+            composable<SearchRoute> {
                 SearchScreen(
                     viewModel = searchScreenViewModel,
                     searchBarVm = searchBarVm,
@@ -81,14 +70,14 @@ fun App(
                     insetsPadding = insetsPadding,
                 )
             }
-            composable(Routes.SETTINGS) {
+            composable<SettingsRoute> {
                 SettingsScreen(insetsPadding = insetsPadding)
             }
         }
     }
 }
 
-fun NavHostController.navigateBarItem(to: String) {
+fun <T : Any> NavHostController.navigateBarItem(to: T) {
 
     navigate(to) {
         popUpTo(graph.findStartDestination().id) {
@@ -98,3 +87,9 @@ fun NavHostController.navigateBarItem(to: String) {
         launchSingleTop = true
     }
 }
+
+@Serializable
+object SearchRoute
+
+@Serializable
+object SettingsRoute
