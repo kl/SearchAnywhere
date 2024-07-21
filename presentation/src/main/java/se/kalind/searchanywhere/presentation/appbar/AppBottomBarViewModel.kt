@@ -47,7 +47,13 @@ class AppBottomBarViewModel @Inject constructor(
         }
     }
 
-    fun onSearchFieldFocused() {
+    fun onSearchFieldFocused(isFocused: Boolean) {
+        if (isFocused) {
+            handlePermissionsRequest()
+        }
+    }
+
+    private fun handlePermissionsRequest() {
         val activity = mainActivityRef.mainActivity ?: return
 
         activity.requestFilePermissions(object : PermissionStatusCallback {

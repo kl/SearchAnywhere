@@ -1,14 +1,20 @@
 package se.kalind.searchanywhere.presentation.search
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,14 +46,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import se.kalind.searchanywhere.presentation.components.scrollbar.DraggableScrollbar
+import se.kalind.searchanywhere.presentation.components.scrollbar.rememberDraggableScroller
+import se.kalind.searchanywhere.presentation.components.scrollbar.rememberScrollbarState
 import kotlinx.collections.immutable.ImmutableList
-import my.nanihadesuka.compose.LazyColumnScrollbar
-import my.nanihadesuka.compose.ScrollbarSelectionMode
 import se.kalind.searchanywhere.domain.ItemType
 import se.kalind.searchanywhere.presentation.Loading
 import se.kalind.searchanywhere.presentation.R
@@ -61,7 +68,6 @@ fun SearchScreen(
     viewModel: SearchScreenViewModel,
     searchBarVm: AppBottomBarViewModel,
     snackbarHostState: SnackbarHostState,
-    insetsPadding: PaddingValues,
 ) {
     val message by viewModel.messages.collectAsStateWithLifecycle(
         initialValue = Message(
@@ -98,7 +104,6 @@ fun SearchScreen(
 
     SearchScreenContent(
         modifier = modifier.padding(start = 16.dp, end = 16.dp),
-        insetsPadding = insetsPadding,
         items = state.items,
         history = state.history,
         searchText = currentSearch,
@@ -109,13 +114,11 @@ fun SearchScreen(
 @Composable
 internal fun SearchScreenContent(
     modifier: Modifier = Modifier,
-    insetsPadding: PaddingValues,
     items: ImmutableList<SearchItem>,
     history: Loading<ImmutableList<SearchItem>>,
     searchText: String,
     onItemAction: (ItemAction) -> Unit,
 ) {
-
     Box(modifier = modifier) {
 
         if (searchText.isEmpty()) {
@@ -123,7 +126,6 @@ internal fun SearchScreenContent(
             if (!histItems.isNullOrEmpty()) {
                 ItemList(
                     items = histItems,
-                    insetsPadding = insetsPadding,
                     onItemAction = onItemAction,
                     headerText = "History",
                     isHistory = true,
@@ -147,7 +149,6 @@ internal fun SearchScreenContent(
         } else {
             ItemList(
                 items = items,
-                insetsPadding = insetsPadding,
                 onItemAction = onItemAction
             )
         }
@@ -158,29 +159,26 @@ internal fun SearchScreenContent(
 @Composable
 private fun ItemList(
     items: ImmutableList<SearchItem>,
-    insetsPadding: PaddingValues,
     onItemAction: (ItemAction) -> Unit,
     headerText: String? = null,
     isHistory: Boolean = false,
 ) {
     val listState = rememberLazyListState()
+    // When we get a new list of items the search has changed so reset scroll position.
+    LaunchedEffect(items) {
+        listState.scrollToItem(0)
+    }
 
-    LazyColumnScrollbar(
-        listState,
-        modifier = Modifier.padding(bottom = insetsPadding.calculateBottomPadding()),
-        selectionMode = ScrollbarSelectionMode.Full,
-        alwaysShowScrollBar = false,
-        hideDelayMillis = 1200,
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(top = insetsPadding.calculateTopPadding())
+            contentPadding = PaddingValues(
+                top = 32.dp,
+                bottom = 16.dp
+            )
         ) {
-            item {
-                Spacer(modifier = Modifier.padding(top = 10.dp))
-            }
             if (headerText != null) {
-                item {
+                item(key = "header") {
                     Text(
                         text = headerText,
                         textAlign = TextAlign.Center,
@@ -197,14 +195,39 @@ private fun ItemList(
                 key = { it.key },
             ) { item ->
                 ItemCard(
-                    modifier = Modifier.animateItemPlacement(),
                     item = item,
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = null,
+                        placementSpec = spring(
+                            stiffness = Spring.StiffnessMediumLow,
+                            visibilityThreshold = IntOffset.VisibilityThreshold,
+                        ),
+                        fadeOutSpec = null
+                    ),
                     onItemAction = onItemAction,
                     isHistory = isHistory,
                     listState = listState,
                 )
             }
         }
+
+        val size = headerText?.let { items.size + 1 } ?: items.size
+        val scrollbarState = listState.rememberScrollbarState(
+            itemsAvailable = size,
+        )
+
+        listState.DraggableScrollbar(
+            modifier = Modifier
+                .offset(x = 16.dp)
+                .padding(top = 32.dp)
+                .fillMaxHeight()
+                .align(Alignment.CenterEnd),
+            state = scrollbarState,
+            orientation = Orientation.Vertical,
+            onThumbMoved = listState.rememberDraggableScroller(
+                itemsAvailable = size,
+            )
+        )
     }
 }
 

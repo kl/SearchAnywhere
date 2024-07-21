@@ -93,8 +93,6 @@ dependencies {
 
     // Accompanist
     implementation(libs.accompanist.drawablepainter)
-    // Scrollbar
-    implementation(libs.lazyColumnScrollbar)
 
     // Immutable collections
     implementation(libs.kotlinx.collections.immutable)

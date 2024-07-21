@@ -4,4 +4,11 @@
     <string name="storage_permission_text">Granting storage read/write permissions lets you search for files on the external storage. The write permission is needed to create the file cache database which enables fast file searches. If you do not grant this permission the app will not find files but will still find Apps and Settings.</string>
     <string name="no_history_available">No History Available\nTry Doing A Search</string>
     <string name="search_field_label">Search Anywhere</string>
+    <string name="search_hints">
+        <![CDATA[By using the <b>&</b> character you can include more than one search term,
+        where all search terms must match.<br/><br/>
+        For example, by searching for <b>documents&pdf</b> only items that contain both
+        <b>documents</b> and <b>pdf</b> (anywhere in the name) are matched.<br/><br/>
+        Similarly, use <b>!</b> to match only items that does not contain the search term.]]>
+    </string>
 </resources>

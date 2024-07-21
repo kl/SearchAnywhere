@@ -64,7 +64,7 @@ fun AppBottomBarContent(
     searchText: String,
     expandSearchField: Boolean,
     onSearchChanged: (String) -> Unit,
-    onSearchReceivedFocus: () -> Unit,
+    onSearchReceivedFocus: (Boolean) -> Unit,
     onSettingsNavClicked: () -> Unit,
     onSearchNavClicked: () -> Unit,
 ) {
@@ -105,7 +105,7 @@ fun AppBottomBarContent(
                             .requiredHeight(65.dp),
                         text = searchText,
                         onSearchChanged = onSearchChanged,
-                        onReceivedFocus = onSearchReceivedFocus,
+                        onFocusChanged = onSearchReceivedFocus,
                     )
                     NavigationBarItem(
                         selected = false,
@@ -160,15 +160,13 @@ fun SearchTextField(
     modifier: Modifier = Modifier,
     text: String,
     onSearchChanged: (String) -> Unit,
-    onReceivedFocus: () -> Unit,
+    onFocusChanged: (Boolean) -> Unit,
 ) {
 
     OutlinedTextField(
         modifier = modifier
             .onFocusChanged { focus ->
-                if (focus.isFocused) {
-                    onReceivedFocus()
-                }
+                onFocusChanged(focus.isFocused)
             },
         value = text,
         singleLine = true,

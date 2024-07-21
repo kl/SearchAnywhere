@@ -52,6 +52,9 @@ class DefaultItemOpener(
                 } catch (e: ActivityNotFoundException) {
                     Log.d("SearchAnywhere", "setting unavailable")
                     return Result.err("Setting unavailable")
+                } catch (e: SecurityException) {
+                    Log.d("SearchAnywhere", "setting permission denied")
+                    return Result.err("Setting permission denied")
                 }
             }
 
