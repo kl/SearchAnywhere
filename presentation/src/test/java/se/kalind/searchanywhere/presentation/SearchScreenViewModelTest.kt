@@ -1,7 +1,10 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package se.kalind.searchanywhere.presentation
 
 import android.graphics.drawable.Drawable
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.test.TestDispatcher
@@ -24,6 +27,8 @@ import se.kalind.searchanywhere.domain.WorkResult
 import se.kalind.searchanywhere.domain.repo.AppIconDrawable
 import se.kalind.searchanywhere.domain.repo.AppItemData
 import se.kalind.searchanywhere.domain.repo.FileSearchResult
+import se.kalind.searchanywhere.domain.repo.MatchType
+import se.kalind.searchanywhere.domain.repo.SearchQuery
 import se.kalind.searchanywhere.domain.repo.SettingItemData
 import se.kalind.searchanywhere.domain.usecases.AppsUseCase
 import se.kalind.searchanywhere.domain.usecases.FilesUseCase
@@ -42,22 +47,31 @@ class SearchScreenViewModelTest {
     lateinit var appsRepo: FakeAppsRepo
     lateinit var settingsRepo: FakeSettingsRepo
     lateinit var filesRepo: FakeFilesRepo
+    lateinit var ucOpen: OpenItemUseCase
+    lateinit var ucApps: AppsUseCase
+    lateinit var ucSettings: SettingsUseCase
+    lateinit var ucFiles: FilesUseCase
+    lateinit var ucHistory: HistoryUseCase
 
     @Before
     fun setup() {
         appsRepo = FakeAppsRepo()
         settingsRepo = FakeSettingsRepo()
         filesRepo = FakeFilesRepo()
+        ucOpen = OpenItemUseCase(FakeItemOpener())
+        ucApps = AppsUseCase(appsRepo)
+        ucSettings = SettingsUseCase(settingsRepo)
+        ucFiles = FilesUseCase(filesRepo)
+        ucHistory = HistoryUseCase(appsRepo, settingsRepo, filesRepo)
     }
 
     fun createViewModel(dispatcher: TestDispatcher): SearchScreenViewModel =
         SearchScreenViewModel(
-            ucApps = AppsUseCase(appsRepo),
-            ucSettings = SettingsUseCase(settingsRepo),
-            ucFiles = FilesUseCase(filesRepo),
-            ucHistory = HistoryUseCase(appsRepo, settingsRepo, filesRepo),
-            ucOpen = OpenItemUseCase(FakeItemOpener()),
-            mainActivityRef = MainActivityReference(),
+            ucOpen = ucOpen,
+            ucApps = ucApps,
+            ucSettings = ucSettings,
+            ucFiles = ucFiles,
+            ucHistory = ucHistory,
             defaultDispatcher = dispatcher,
         )
 
@@ -76,33 +90,44 @@ class SearchScreenViewModelTest {
         // test that ui state is created correctly when there is data
 
         filesRepo.filesFlow.value = FileSearchResult(
-            searchQuery = listOf("file"),
+            searchQuery = listOf(
+                SearchQuery(
+                    query = "file",
+                    matchType = MatchType.INCLUDE
+                )
+            ),
             files = WorkResult.Success(arrayOf("file1", "file2.mp3"))
         )
-        appsRepo.appsFlow.value = WorkResult.Success(listOf(
-            AppItemData(
-                id = "some.id",
-                label = "X The Everything Files App",
-                packageName = "com.the.package",
-                activityName = "activity",
-                icon = AppIconDrawable(mock<Drawable>())
+        appsRepo.appsFlow.value = WorkResult.Success(
+            listOf(
+                AppItemData(
+                    id = "some.id",
+                    label = "X The Everything Files App",
+                    packageName = "com.the.package",
+                    activityName = "activity",
+                    icon = AppIconDrawable(mock<Drawable>())
+                )
             )
-        ))
-        settingsRepo.settingsFlow.value = WorkResult.Success(listOf(
-            SettingItemData(
-                id = "settingId",
-                fieldName = "settings_files",
-                fieldValue = "some_val",
-            ),
-            SettingItemData(
-                id = "wifiId",
-                fieldName = "settings_wifi",
-                fieldValue = "some_val",
-            ),
-        ))
+        )
+        settingsRepo.settingsFlow.value = WorkResult.Success(
+            listOf(
+                SettingItemData(
+                    id = "settingId",
+                    fieldName = "settings_files",
+                    fieldValue = "some_val",
+                ),
+                SettingItemData(
+                    id = "wifiId",
+                    fieldName = "settings_wifi",
+                    fieldValue = "some_val",
+                ),
+            )
+        )
 
         val viewModel = createViewModel(dispatcher)
-        viewModel.onSearchChanged("file")
+        ucApps.setFilter("file")
+        ucSettings.setFilter("file")
+        ucFiles.search("file")
 
         val state = viewModel.uiState.take(2).last()
 

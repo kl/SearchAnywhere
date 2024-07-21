@@ -2,6 +2,7 @@ package se.kalind.searchanywhere.presentation
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import se.kalind.searchanywhere.domain.ItemType
 import se.kalind.searchanywhere.domain.UnixTimeMs
 import se.kalind.searchanywhere.domain.WorkResult
@@ -13,6 +14,7 @@ import se.kalind.searchanywhere.domain.repo.FileItem
 import se.kalind.searchanywhere.domain.repo.FileSearchResult
 import se.kalind.searchanywhere.domain.repo.FilesRepository
 import se.kalind.searchanywhere.domain.repo.ScanRoot
+import se.kalind.searchanywhere.domain.repo.SearchQuery
 import se.kalind.searchanywhere.domain.repo.SettingItem
 import se.kalind.searchanywhere.domain.repo.SettingItemData
 import se.kalind.searchanywhere.domain.repo.SettingsRepository
@@ -58,7 +60,7 @@ class FakeSettingsRepo : SettingsRepository {
     override fun deleteFromHistory(item: SettingItem) {}
 }
 
-class FakeFilesRepo : FilesRepository {
+class FakeFilesRepo() : FilesRepository {
 
     val filesFlow = MutableStateFlow(FileSearchResult(
         searchQuery = emptyList(),
@@ -70,19 +72,22 @@ class FakeFilesRepo : FilesRepository {
     override val searchResults: Flow<FileSearchResult>
         get() = filesFlow
 
+    override val indexedFilesCount: Flow<Long>
+        get() = flow { emit(0) }
+
     override fun history(): Flow<List<Pair<FileItem, UnixTimeMs>>> {
         return historyFlow
     }
 
-    override fun setSearchQuery(query: List<String>) {}
+    override fun setSearchQuery(query: List<SearchQuery>) {}
 
     override fun saveToHistory(item: FileItem) {}
 
     override fun deleteFromHistory(item: FileItem) {}
 
-    override fun buildDatabase(scanRoot: ScanRoot) {}
+    override suspend fun buildDatabase(scanRoot: ScanRoot) {}
 
-    override fun buildDatabaseIfNotExists(scanRoot: ScanRoot) {}
+    override suspend fun buildDatabaseIfNotExists(scanRoot: ScanRoot) {}
 }
 
 class FakeItemOpener : ItemOpener {
