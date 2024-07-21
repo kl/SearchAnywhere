@@ -118,7 +118,7 @@ mod tests {
     use super::*;
     use std::fs::File;
     use std::io::Write;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn test_compress_lines() {
@@ -159,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_compress_from_file() {
-        let tmp_dir = TempDir::new("test_compress_from_file").unwrap();
+        let tmp_dir = TempDir::new().unwrap();
         let file_path = tmp_dir.path().join("test_compress_from_file");
         {
             let mut tmp_file = File::create(&file_path).unwrap();

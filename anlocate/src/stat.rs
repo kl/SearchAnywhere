@@ -44,7 +44,7 @@ mod tests {
     use super::*;
     use std::fs::File;
     use std::io::Write;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn test_stats() {
@@ -69,7 +69,7 @@ mod tests {
                 fold
             });
 
-        let tmp_dir = TempDir::new("test_stats").unwrap();
+        let tmp_dir = TempDir::new().unwrap();
 
         let file_path = tmp_dir.path().join("test_stats");
         {

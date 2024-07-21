@@ -134,7 +134,7 @@ mod tests {
     use super::*;
     use std::fs::File;
     use std::io::Write;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn test_search() {
@@ -159,7 +159,7 @@ mod tests {
                 fold
             });
 
-        let tmp_dir = TempDir::new("test_search_on_file").unwrap();
+        let tmp_dir = TempDir::new().unwrap();
 
         let file_path = tmp_dir.path().join("test_search_on_file");
         {

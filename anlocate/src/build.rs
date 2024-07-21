@@ -279,12 +279,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    use tempfile::TempDir;
     use super::*;
-    use tempdir::TempDir;
 
     #[test]
     fn test_build_database() {
-        let tmp_dir = TempDir::new("test_build_database").unwrap();
+        let tmp_dir = TempDir::new().unwrap();
         let db_path = tmp_dir.path().join("database.anlocate");
         let options = DatabaseOptions::default();
         build_database(&db_path, "tests/root", options).unwrap();
@@ -312,7 +312,7 @@ mod tests {
 
     #[test]
     fn test_build_database_remove_root() {
-        let tmp_dir = TempDir::new("test_build_database_remove_root").unwrap();
+        let tmp_dir = TempDir::new().unwrap();
         let db_path = tmp_dir.path().join("database.anlocate");
         let mut options = DatabaseOptions::default();
         options.remove_root = true;
