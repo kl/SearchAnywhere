@@ -71,4 +71,4 @@ linker = "NDK_INSTALL_DIR/25.1.8937393/toolchains/llvm/prebuilt/linux-x86_64/bin
 ```
 
 * Run the tests: `cd anlocate && cargo test`
-* Build all native libs and copy to jniLibs dir: `./gradlew copyAnlocateLibs`
+* Build all native libs and copy to jniLibs dir: `./gradlew buildAnlocateLibs`
