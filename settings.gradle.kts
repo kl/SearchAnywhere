@@ -25,5 +25,3 @@ include(":app")
 include(":domain")
 include(":data")
 include(":presentation")
-
-includeBuild("gradle/plugins")
